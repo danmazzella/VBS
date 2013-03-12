@@ -1,0 +1,646 @@
+<head>
+<title>&nbsp;&nbsp;Creation of KNIGHT Active Directory user accounts</title>
+<HTA:APPLICATION 
+     APPLICATIONNAME="useraddAD"
+     SCROLL="no"
+		 BORDER="thin"
+		 ICON="Flag.ico"
+     SINGLEINSTANCE="yes"
+     WINDOWSTATE="normal"
+ />
+<style>
+BODY
+{
+   background-color: #000080;
+   font-family: Helvetica;
+   font-size: 8pt;
+   margin-top: 20px;
+}
+.intable { 
+   font-family: Helvetica;
+   font-size: 8pt;
+	 margin-left:3px;
+	 margin-right:3px;
+}
+.infield { 
+   font-family: Helvetica;
+   font-size: 8pt;
+	 margin-left:3px;
+	 margin-right:3px;
+	 color: #000080;
+}
+
+.bigger_button
+{
+   font-family: Helvetica;
+   font-size: 8pt;
+   width: 100px;
+	 margin-top: 20px;
+	 margin-bottom: 10px;
+}
+
+</style>
+
+<!--<script language="VBScript">
+'On Error Resume Next
+'********************************************************************************************
+Sub GetAccountProperties(byRef oUsr, Byval stUserServ, Byval bInter)
+	stOut = "User has been created with the following attributes:" & vbCrlf & vbCrlf & _
+	"Login ID" & vbTab & oUsr.cn & vbCrlf & _
+	"First Name" & vbTab & oUsr.givenName & vbCrlf & _
+	"Last Name" & vbTab & oUsr.sn & vbCrlf & _
+	"Display Name" & vbTab & oUsr.displayName & vbCrlf & _
+	"User Description" & vbTab & oUsr.description & vbCrlf & _
+	"User OU" & vbTab & Mid(oUsr.parent, 8) & vbCrlf
+	If StrComp(stUserServ, "user", vbTextcompare) = 0 Then
+		stOut = stOut & "Home Drive" & vbTab & oUsr.homeDrive & vbCrlf & _
+		"Home Directory" & vbTab & oUsr.homeDirectory & vbCrlf & _
+		"Login Script" & vbTab & oUsr.scriptPath & vbCrlf
+	End If
+	stOut = stOut & "Password set to Knight123"
+	If bInter Then
+		MsgBox stOut, vbOkonly, stTitle
+	Else
+		Wscript.Echo stOut
+	End If
+End Sub
+'********************************************************************************************
+</script>
+-->
+<script language="vbscript">
+'********************************************************************
+'* Window_Onload
+'********************************************************************
+Sub Window_Onload
+   self.Focus()
+   self.ResizeTo 700,700
+	 btn_create.Disabled = True
+	 btn_clear.Disabled = True
+	 rad_user.Checked = True
+	 rad_backoffice.Checked = True
+	 first_name.Focus()
+	 Set oNet = CreateObject("WScript.Network")
+	 stNBDomain = oNet.UserDomain
+	 nbdomain_name.innerHTML = stNBDomain & "\"
+	 Set oRootDSE = GetObject("LDAP://rootDSE")
+	 stRootNC = CStr(oRootDSE.Get("defaultNamingContext"))
+	 stDomain = "LDAP://" & stRootNC
+	 stDNSdomain = getDNSdomainName(stDomain)
+	 addomain_name.innerHTML = "@" & stDNSdomain
+	 usr_ldap_cont.Value = ""
+	 clearFields
+End Sub
+
+Sub clearFields	
+		first_name.Value = ""
+		last_name.Value = ""
+		middle_in.Value = ""
+		nb_login_id.Value = ""
+		ad_login_id.Value = ""
+		disp_name.Value = ""
+		desc.Value = ""
+		home_dir.Value = ""
+		log_script.Value = ""
+		btn_create.Disabled = True
+		rad_user.Checked = True
+		rad_backoffice.Checked = True
+'		rad_service.Checked = False
+		rad_backoffice.Disabled = False
+'		rad_trader.Checked = False
+		rad_trader.Disabled = False
+		home_dir.Disabled = False
+		log_script.Disabled = False
+		desc.Disabled = False
+	  Set oRootDSE = GetObject("LDAP://rootDSE")
+	  stRootNC = CStr(oRootDSE.Get("defaultNamingContext"))
+		usr_dom_root.Value = stRootNC
+		confirm_area.innerHTML = ""
+'		MsgBox "Clear routine: " & usr_ldap_path.Value
+End Sub
+
+Sub closeTool
+		self.close()
+End Sub
+
+Function replInvChars(stIn)
+		Set reLN = New RegExp
+		With reLN
+				 .IgnoreCase = True
+				 .Global = True
+				 .Pattern = "[\W]*"
+		End With
+		replInvChars = reLN.Replace(stIn, "")
+End Function
+
+Sub fillLoginIDs
+		stTitle = "Creation of KNIGHT Active Directory user accounts"
+		stFname = replInvChars(ChangeCaseToTitle(first_name.Value))
+		stLname = ChangeCaseToTitle(last_name.Value)
+		stInitial = replInvChars(UCase(Left(middle_in.Value, 1)))
+		first_name.Value = stFname
+		last_name.Value = stLname
+		middle_in.Value = stInitial
+		If middle_in.Value = "" Then
+			  disp_name.Value = stFname & " " & stLname
+		Else
+				disp_name.Value = stFname & " " & stInitial & " " & stLname
+		End If
+		stLogID = LCase(Left(first_name.Value, 1) & Left(replInvChars(last_name.Value), 7)) 
+		btn_create.Disabled = False
+		btn_clear.Disabled = False
+		nb_login_id.Value = stLogID
+		ad_login_id.Value = nb_login_id.Value
+		stRootNC = usr_dom_root.Value
+		If rad_user.Checked Then
+			 home_dir.Disabled = False
+			 log_script.Disabled = False
+			 desc.Disabled = False
+			 stSrvN = ""
+			 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+			 		 stSrvN = "JC1DFS1"
+			 Else
+			 		 stSrvN = "JC1DFS2"
+			 End If
+			 home_srv.Value = stSrvN
+			 home_dir.Value = "\\" & stSrvN & "\" & stLogID
+			 log_script.Value = "SLogic.bat"
+			 If rad_backoffice.Checked Then
+			 		usr_ldap_cont.Value = "LDAP://OU=Backoffice,OU=User Accounts," & stRootNC
+			 ElseIf rad_trader.Checked Then
+			 		usr_ldap_cont.Value = "LDAP://OU=Traders,OU=User Accounts," & stRootNC
+			 Else
+			 		MsgBox "Please, choose user Category - Backoffice or Trader", stTitle, vbOKOnly
+			 End If
+		Else
+			 usr_ldap_cont.Value = "LDAP://OU=Service Accounts," & stRootNC
+			 desc.Value = "Application User"
+			 desc.Disabled = True
+			 home_dir.Disabled = True
+			 log_script.Disabled = True
+			 home_dir.Value = ""
+			 log_script.Value = ""
+		End If
+'		MsgBox "fillLoginIDs routine: " & usr_ldap_path.Value
+End Sub
+
+Function ChangeCaseToTitle(stInput)
+	Dim stOutput, oReg, oMatches, oMatch
+
+	Set oReg = New RegExp
+	oReg.IgnoreCase = False
+	oReg.Global = True
+	oReg.Pattern = "(\S+\s*)"
+
+	stOutput = ""
+	Set oMatches = oReg.Execute(stInput)
+	For Each oMatch in oMatches
+		stOutput = stOutput & Ucase(Left(oMatch, 1)) & LCase(Right(oMatch, Len(oMatch) - 1))
+	Next
+	ChangeCaseToTitle = stOutput
+End Function
+
+Function getDNSdomainName(Byval stADSPath)
+	getDNSdomainName = ""
+	Set reFindDCs = New RegExp
+	With reFindDCs
+		.IgnoreCase = True
+		.Global = True
+		.Pattern = "dc\=([^,]+)"
+	End With
+	If reFindDCs.Test(stADSPath) Then
+		Set oFoundMatches = reFindDCs.Execute(stADSPath)
+		For Each oSM In oFoundMatches
+			If getDNSdomainName = "" Then
+				getDNSdomainName = oSM.SubMatches(0)
+			Else
+				getDNSdomainName = getDNSdomainName & "." & oSM.SubMatches(0)
+			End If
+		Next
+	End If
+End Function
+
+Sub handleUserType(rad_type)
+		If rad_type.Checked Then
+			 Select Case rad_type.Value
+			 			Case "User"
+								rad_backoffice.Disabled = False
+								rad_trader.Disabled = False
+						Case "Service"
+								rad_backoffice.Disabled = True
+								rad_trader.Disabled = True
+						Case "Backoffice"
+						Case "Traders"
+				End Select
+		End If
+'		MsgBox "rad_user " & rad_user.Checked & vbCrLf & "rad_sevice " & rad_service.Checked & vbCrLf & _
+'					 "rad_trader " & rad_trader.Checked & vbCrLf & "rad_backoffice " & rad_backoffice.Checked
+'		MsgBox "stUsrNC " & stUsrNC
+End Sub
+
+Sub correctUserData(id_type)
+		Select Case id_type
+			 Case "nb_login_id"
+			 		ad_login_id.Value = LCase(nb_login_id.Value)
+			 Case "ad_login_id"
+			 		nb_login_id.Value = LCase(ad_login_id.Value)
+		End Select
+		stRootNC = usr_dom_root.Value
+		If rad_user.Checked Then
+			 home_dir.Disabled = False
+			 log_script.Disabled = False
+			 desc.Disabled = False
+			 stSrvN = ""
+			 If StrComp(Left(nb_login_id.Value, 1), "m", vbTextcompare) <= 0 Then
+			 		 stSrvN = "JC1DFS1"
+			 Else
+			 		 stSrvN = "JC1DFS2"
+			 End If
+			 home_srv.Value = stSrvN
+			 If rad_backoffice.Checked Then
+			 		usr_ldap_cont.Value = "LDAP://OU=Backoffice,OU=User Accounts," & stRootNC
+			 ElseIf rad_trader.Checked Then
+			 		usr_ldap_cont.Value = "LDAP://OU=Traders,OU=User Accounts," & stRootNC
+			 Else
+			 		MsgBox "Please, choose user Category - Backoffice or Trader", stTitle, vbOKOnly
+			 End If
+		Else
+			 usr_ldap_cont.Value = "LDAP://OU=Service Accounts," & stRootNC
+			 desc.Value = "Application User"
+			 desc.Disabled = True
+			 home_dir.Disabled = True
+			 log_script.Disabled = True
+			 home_dir.Value = ""
+			 log_script.Value = ""
+		End If
+		home_dir.Value = "\\" & home_srv.Value & "\" & nb_login_id.Value
+End Sub
+
+Sub testUser
+		correctUserData("ad_login_id")
+		stTestArea = ""
+		stTestArea = "<table align=""center"" border=""0"" bgcolor=""#c0c0c0"" id=""table_2"" cellpadding=""1"" class=""intable"">" & _
+		"<tr><td align=""center"" colspan=""2""><b>User will be created with the following attributes</b></td></tr>" & _
+		"<tr><td>User First Name</td><td>" & first_name.Value & "</td></tr>" & _
+		"<tr><td>User Initial</td><td>" & middle_in.Value & "</td></tr>" & _
+		"<tr><td>User Last Name</td><td>" & last_name.Value & "</td></tr>" & _
+		"<tr><td>User logon name (Pre-Windows 2000)</td><td>" & nbdomain_name.innerHTML & nb_login_id.Value & "</td></tr>" & _
+		"<tr><td>User logon name</td><td>" & ad_login_id.Value & addomain_name.innerHTML & "</td></tr>" & _
+		"<tr><td>User Display Name</td><td>" & disp_name.Value & "</td></tr>" & _
+		"<tr><td>User Description</td><td>" & desc.Value & "</td></tr>"
+		If rad_user.Checked Then
+				stTestArea = stTestArea & "<tr><td>User Home Directory</td><td>" & home_dir.Value & "</td></tr>" & _
+				"<tr><td>User Login Script</td><td>" & log_script.Value & "</td></tr>"
+		End If
+		stTestArea = stTestArea & "<tr><td>User Container</td><td>" & usr_ldap_cont.Value & "</td></tr>" & _
+		"</table>"
+		confirm_area.innerHTML = stTestArea
+End Sub
+		
+Sub createUser
+		correctUserData("ad_login_id")
+		'Wscript.Echo "Default domain naming context: " & stDomain
+		Const ForReading = 1, ForWriting = 2, ForAppending = 8
+		Const ADS_UF_SCRIPT = &H00000001
+		Const ADS_UF_ACCOUNTDISABLE = &H00000002
+		Const ADS_UF_HOMEDIR_REQUIRED = &H00000008
+		Const ADS_UF_LOCKOUT = &H00000010
+		Const ADS_UF_PASSWD_NOTREQD = &H00000020
+		Const ADS_UF_PASSWD_CANT_CHANGE = &H00000040
+		Const ADS_UF_ENCRYPTED_TEXT_PASSWORD_ALLOWED = &H00000080
+		Const ADS_UF_TEMP_DUPLICATE_ACCOUNT = &H00000100
+		Const ADS_UF_NORMAL_ACCOUNT = &H00000200
+		Const ADS_UF_INTERDOMAIN_TRUST_ACCOUNT = &H00000800
+		Const ADS_UF_WORKSTATION_TRUST_ACCOUNT = &H00001000
+		Const ADS_UF_SERVER_TRUST_ACCOUNT = &H00002000
+		Const ADS_UF_DONT_EXPIRE_PASSWD = &H00010000
+		Const ADS_UF_MNS_LOGON_ACCOUNT = &H00020000
+		Const ADS_UF_SMARTCARD_REQUIRED = &H00040000
+		Const ADS_UF_TRUSTED_FOR_DELEGATION = &H00080000
+		Const ADS_UF_NOT_DELEGATED = &H00100000
+		Const ADS_UF_USE_DES_KEY_ONLY = &H00200000
+		Const ADS_UF_DONT_REQUIRE_PREAUTH = &H00400000
+		Const ADS_UF_PASSWORD_EXPIRED = &H00800000
+		Const ADS_UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION = &H01000000
+		Const ADS_SCOPE_SUBTREE = 2
+		Const ADS_PROPERTY_DELETE = 4
+		Const ADS_PROPERTY_APPEND = 3
+		Const ADS_PROPERTY_UPDATE = 2
+		Const stTitle = "Creation of KNIGHT Active Directory user accounts"
+		On Error Resume Next
+		Err.Clear
+		Set oFso = CreateObject("Scripting.FileSystemObject")
+		Set oShell = CreateObject("WScript.Shell")
+		stCurrentFolder = oShell.CurrentDirectory
+		If Err Then handleErrors "Getting current directory", Err.Description
+		Err.Clear
+		Set oUserOU = GetObject(usr_ldap_cont.Value)
+		If Err Then handleErrors "Getting user OU", Err.Description
+		Err.Clear
+		Set oUser = oUserOU.Create("user", "cn=" & nb_login_id.Value)
+		If Err Then handleErrors "Creating user account", Err.Description
+		Err.Clear
+		oUser.samAccountName = nb_login_id.Value
+		oUser.SetInfo
+		oUser.description = desc.Value
+		oUser.givenName = first_name.Value
+		oUser.sn = last_name.Value
+		If Not (middle_in.Value = "") Then oUser.initials = middle_in.Value
+	 	oUser.Put "userPrincipalName", ad_login_id.Value & addomain_name.innerHTML
+		oUser.SetPassword "Knight123"
+		oUser.SetInfo
+		iUAC = oUser.Get("userAccountControl")
+		oUser.displayName = disp_name.Value
+		If rad_user.Checked Then
+			 oUser.pwdLastSet = 0
+			 oUser.Put "userAccountControl", iUAC Xor ADS_UF_ACCOUNTDISABLE
+			 oUser.homeDrive = "I:"
+			 oUser.homeDirectory = home_dir.Value
+			 oUser.scriptPath = log_script.Value
+			 oUser.SetInfo
+			 Call createUserFolders(oFso, stCurrentFolder, home_srv.Value, nb_login_id.Value, nbdomain_name.innerHTML)
+		Else
+			 oUser.Put "userAccountControl", iUAC Or ADS_UF_DONT_EXPIRE_PASSWD Xor ADS_UF_ACCOUNTDISABLE
+			 oUser.SetInfo
+		End If
+		oUser.SetInfo
+		confirmUser oUser
+		notifyUserCreated oUser
+End Sub
+
+Sub handleErrors(byVal errType, byVal errDesc)
+		stErrArea = "<span class=""intable"" style=""font-weight:bold; color:red;"">Error occured during " & errType & "</span><br>" & _
+				"<span class=""intable"">Error description: " & errDesc & "</span>"
+		confirm_area.innerHTML = confirm_area.innerHTML & "<br>" & stErrArea
+End Sub
+
+Sub createUserFolders(byRef oFso, ByVal stCurrentFolder, Byval stSrv, Byval stUsrName, Byval stNBDomain)
+	stUsrFolder = "\\" & stSrv & "\users\" & stUsrName
+	stUsrConfig = "\\" & stSrv & "\configuration\" & stUsrName
+	Set oShell = CreateObject("WScript.Shell")
+'	stCurrentFolder = oShell.CurrentDirectory
+	If oFso.FolderExists(stUsrFolder) Then
+		'Just leave it for now
+	Else
+		Set oUsrFolder = oFso.CreateFolder(stUsrFolder)
+		Set oUsrFolder = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig)
+		Set oUsrConfig = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig & "\apps")
+		Set oUsrConfig = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig & "\apps\brass")
+		Set oUsrConfig = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig & "\apps\mws")
+		Set oUsrConfig = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig & "\apps\qms")
+		Set oUsrConfig = Nothing
+'		Wscript.Sleep 3000
+'		MsgBox stCurrentFolder & "\cacls " & stUsrFolder & " /T /E /G " & stNBDomain & stUsrName & ":C"
+		bResult = oShell.Run(stCurrentFolder & "\cacls " & stUsrFolder & " /T /E /G " & stNBDomain & stUsrName & ":C", 0, True)
+		If Err Then handleErrors "Setting permissions on home directory", Err.Description
+		Err.Clear
+		bResult = oShell.Run(stCurrentFolder & "\cacls " & stUsrConfig & " /T /E /G " & stNBDomain & stUsrName & ":C", 0, True)
+		If Err Then handleErrors "Setting permissions on config directory", Err.Description
+		Err.Clear
+	End If
+End Sub
+
+Sub confirmUser(ByRef oUsr)
+		stConfArea = ""
+		If middle_in.Value = "" Then
+			 stMI = ""
+		Else
+			 stMI = oUsr.initials
+		End If
+		stConfArea = "<table align=""center"" border=""0"" bgcolor=""#c0c0c0"" id=""table_2"" cellpadding=""1"" class=""intable"">" & _
+		"<tr><td align=""center"" colspan=""2""><span class=""intable"" style=""color:green;font-weight:bold;"">User account created successfully with the following attributes</span></td></tr>" & _
+		"<tr><td>User First Name</td><td>" & oUsr.givenName & "</td></tr>" & _
+		"<tr><td>User Initial</td><td>" & stMI & "</td></tr>" & _
+		"<tr><td>User Last Name</td><td>" & oUsr.sn & "</td></tr>" & _
+		"<tr><td>User logon name (Pre-Windows 2000)</td><td>" & nbdomain_name.innerHTML & oUsr.samAccountName & "</td></tr>" & _
+		"<tr><td>User logon name</td><td>" & oUsr.Get("userPrincipalName") & "</td></tr>" & _
+		"<tr><td>User Display Name</td><td>" & oUsr.displayName & "</td></tr>" & _
+		"<tr><td>User Description</td><td>" & oUsr.description & "</td></tr>"
+		If rad_user.Checked Then
+				stConfArea = stConfArea & "<tr><td>User Home Directory</td><td>" & oUsr.homeDirectory & "</td></tr>" & _
+				"<tr><td>User Login Script</td><td>" & oUsr.scriptPath & "</td></tr>" & _
+				"<tr><td>Password Expiration</td><td>Change on Next Logon</td></tr>"
+		Else
+				stConfArea = stConfArea & "<tr><td>Password Expiration</td><td>Never Expire</td></tr>"
+		End If
+		stConfArea = stConfArea & _
+		"<tr><td>Password Set To</td><td>Knight123</td></tr>" & _
+		"<tr><td>User Container</td><td>" & Mid(oUsr.parent, 8) & "</td></tr>" & _
+		"</table>"
+		confirm_area.innerHTML = stConfArea
+End Sub
+
+Sub notifyUserCreated(ByRef oUsr)
+		On Error Resume Next
+		Const ADS_UF_DONT_EXPIRE_PASSWD = &H00010000
+		Set oShell = CreateObject("WScript.Shell")
+		Set oNet = CreateObject("WScript.Network")
+		stUsrCreator = oNet.UserName
+		stUsrComp = oNet.ComputerName
+		stCurrentFolder = oShell.CurrentDirectory
+		stOutput = ""
+		Err.Clear
+		stUfn = oUsr.givenName
+		If Err Then
+			 stUfn = "Not specified"
+			 Err.Clear
+		End If
+		stUmi = oUsr.initials
+		If Err Then
+			 stUmi = "Not specified"
+			 Err.Clear
+		End If
+		stUln = oUsr.sn
+		If Err Then
+			 stUln = "Not specified"
+			 Err.Clear
+		End If
+		stUid = oUsr.samAccountName
+		If Err Then
+			 stUid = "Not specified"
+			 Err.Clear
+		End If
+		stUdn = oUsr.displayName
+		If Err Then
+			 stUdn = "Not specified"
+			 Err.Clear
+		End If
+		stUdc = oUsr.description
+		If Err Then
+			 stUdc = "Not specified"
+			 Err.Clear
+		End If
+		stUhd = oUsr.homeDirectory
+		If Err Then
+			 stUhd = "Not specified"
+			 Err.Clear
+		End If
+		stUls = oUsr.scriptPath
+		If Err Then
+			 stUls = "Not specified"
+			 Err.Clear
+		End If
+		stUou = Mid(oUsr.parent, 8)
+		iUAC = oUser.Get("userAccountControl")
+		stUpe = "Password expires according to policy"
+		If iUAC AND ADS_UF_DONT_EXPIRE_PASSWD Then stUpe = "Password never expires"
+		stUpl = oUsr.PasswordLastChanged
+		If Err Then
+			 stUpl = "User must change password on next logon"
+			 Err.Clear
+		End If
+'		If StrComp(stUpl, "0", vbBinaryCompare) = 0 Then stUpl = "User must change password on next logon"
+	'	Wscript.Echo changeBadChars(stUhd)
+		stOutput = FormatDateTime(Now(), 0) & vbCrlf & _
+			"User " & stUsrCreator & " from PC " & stUsrComp & " created the following account" & vbCrlf & vbCrlf
+		stOutput = stOutput & "User First Name" & vbTab & stUfn & vbCrLf & _
+						 "User Initial" & vbTab & stUmi & vbCrLf & _
+						 "User Last Name" & vbTab & stUln & vbCrLf & _
+						 "User logon name" & vbTab & stUid & vbCrLf & _
+						 "User Display Name" & vbTab & stUdn & vbCrLf & _
+						 "User Description" & vbTab & stUdc & vbCrLf & _
+						 "User Home Directory" & vbTab & changeBadChars(stUhd) & vbCrlf & _
+						 "User Login Script" & vbTab & stUls & vbCrLf & _
+						 "Password Expiration" & vbTab & stUpe & vbCrLf & _
+						 "Password Change" & vbTab & stUpl & vbCrLf & _
+						 "User Container" & vbTab & stUou & vbCrLf
+		bResult = oShell.Run(stCurrentFolder & "\postie -host:mailhost.knight-sec.com -from:AD_Knight@donotreply.com -to:PC_Services@knight.com,NTADMINS@knight.com -s:""New Active Directory User account created"" -msg:""" & stOutput & "", 0, True)
+'		bResult = oShell.Run(stCurrentFolder & "\postie -host:mailhost.knight-sec.com -from:AD_Knight@donotreply.com -to:nplaunov@knight.com -s:""New Active Directory User account created"" -msg:""" & stOutput & "", 0, True)
+'		Wscript.Echo stOutput
+End Sub
+
+Function changeBadChars(Byval stIn)
+	Set reFindChars = New RegExp
+	With reFindChars
+		.IgnoreCase = True
+		.Global = True
+		.Pattern = "[\\]"
+	End With
+	changeBadChars = reFindChars.Replace(stIn, "\\")
+End Function
+</script>
+</head>
+<body>
+
+<table summary="" align="center" border="0" bgcolor="#c0c0c0" id="table_1" cellpadding="1">
+<tr>
+		<td rowspan="2"><span class="intable" id="user_types_head" style="margin-left:25px;">Choose User type:</span>
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="user_type_head">User</span><br>
+				<input type="radio" class="intable" id="rad_user" name="rad_user_serv" value="User" onclick="handleUserType(rad_user)" />
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="user_cat_head">Backoffice</span><br>
+				<input type="radio" class="intable" id="rad_backoffice" name="rad_back_trad" value="Backoffice" onclick="handleUserType(rad_backoffice)" />
+				<img alt="Company logo" src="./knight_logo_gray_bg_small.JPG" style="position:absolute; vertical-align:middle; left:490px;" />
+		</td>
+</tr>
+<tr>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="user_type2_head">Service</span><br>
+				<input type="radio" class="intable" id="rad_service" name="rad_user_serv" value="Service" onclick="handleUserType(rad_service)" />
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="user_cat2_head">Trader</span><br>
+				<input type="radio" class="intable" id="rad_trader" name="rad_back_trad" value="Traders" onclick="handleUserType(rad_trader)" />
+		</td>
+</tr>
+<tr>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="first_name_head">First Name</span>
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="initial_head">Initials</span>
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="last_name_head">Last Name</span>
+		</td>
+</tr>
+<tr>
+		<td>
+				<input type="text" id="first_name" size="30" maxlength="45" value="" class="infield" onchange="fillLoginIDs" />
+		</td>
+		<td>
+				<input type="text" id="middle_in" size="7" maxlength="15" class="infield" onchange="fillLoginIDs" />
+		</td>
+		<td>
+				<input type="text" id="last_name" size="45" maxlength="45" value="" class="infield" onchange="fillLoginIDs" />
+		</td>
+</tr>
+<tr>
+		<td colspan="2" valign="bottom">
+				<span class="intable" id="nb_login_id_head">User logon name (Pre-Windows 2000)</span>
+		</td>
+		<td valign="bottom">
+				<span class="intable" id="ad_login_id_head">User logon name</span>
+		</td>
+</tr>
+<tr>
+		<td colspan="2">
+				<span class="intable" id="nbdomain_name"></span><input type="text" id="nb_login_id" size="26" maxlength="45" value="" class="infield" onchange="correctUserData('nb_login_id')" />
+		</td>
+		<td>
+				<input type="text" id="ad_login_id" size="24" maxlength="45" value="" class="infield" onchange="correctUserData('ad_login_id')" /><span class="intable" id="addomain_name"></span>
+		</td>
+</tr>
+<tr>
+		<td colspan="2" valign="bottom">
+				<span class="intable" id="desc_head">Description</span>
+		</td>
+		<td valign="bottom">
+				<span class="intable" id="disp_name_head">Display Name</span>
+		</td>
+</tr>
+<tr>
+		<td colspan="2">
+				<input type="text" id="desc" size="45" maxlength="255" value="" class="infield" />
+		</td>
+		<td>
+				<input type="text" id="disp_name" size="45" maxlength="255" value="" class="infield" />
+		</td>
+</tr>
+<tr>
+		<td colspan="2" valign="bottom">
+				<span class="intable" id="home_dir_head">Home Folder Location</span>
+		</td>
+		<td valign="bottom">
+				<span class="intable" id="log_script_head">Logon Script</span>
+		</td>
+</tr>
+<tr>
+		<td colspan="2">
+				<span class="intable">Connect </span><span class="infield" id="home_letter" style="font-size:10pt; font-weight:bold;">I:</span><span class="intable"> to </span><input type="text" id="home_dir" size="28" maxlength="255" value="" class="infield" />
+		</td>
+		<td>
+				<input type="text" id="log_script" size="45" maxlength="255" value="" class="infield" />
+		</td>
+</tr>
+
+<tr>
+		<td align="justify">
+				<input type="button" id="btn_clear" value="Reset Fields" class="bigger_button" style="margin-left:5px;" onclick="clearFields">
+		</td>
+		<td align="justify">
+				<input type="button" id="btn_create" value="Create Account" class="bigger_button" style="margin-left:5px;" onclick="createUser">
+		</td>
+		<td align="right">
+				<input type="button" id="btn_test" value="Test" class="bigger_button" style="margin-right:5px;" onclick="testUser">
+				<input type="button" id="btn_close" value="Close" class="bigger_button" style="margin-right:5px;" onclick="closeTool">
+				<input type="hidden" id="usr_dom_root" />
+				<input type="hidden" id="usr_ldap_cont" />
+				<input type="hidden" id="home_srv" />
+		</td>
+</tr>
+<tr>
+		<td colspan="3" align="center"><div align="center" id="confirm_area"></div>
+		</td>
+</tr>
+</table>
+
+
+</body>

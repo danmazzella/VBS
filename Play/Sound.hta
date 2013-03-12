@@ -1,0 +1,144 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="Sound"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="no" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>Sound</TITLE>
+<SCRIPT language=vbscript>
+	Sub cmdContinue_onclick()
+		
+		strComputer = document.Sound.CompName.Value
+		
+		soundVol = document.Sound.VolPer.Value
+		PlayVol = (soundVol * 1000) / 1.53
+		
+		ResetVol = curVol
+		ResetVol = (ResetVol * 1000) / 1.53
+
+		CopyFiles strComputer
+		retValue = strSoundFile
+				
+		Set objShell = CreateObject("Wscript.Shell")
+		PLAYPLAY = "psexec \\" & strComputer & " /accepteula -h cscript.exe c:\temp\sound\playsound.vbs " & retValue & " " & PlayVol & " " & ResetVol
+		Div1.innerHTML = Div1.innerHTML & "Playing Sound" & "<BR>" 
+		Div1.doScroll("pageDown")		
+		Div1.innerHTML = Div1.innerHTML & "......." & "<BR>" 
+		Div1.innerHTML = Div1.innerHTML & "................." & "<BR>" 
+		Div1.doScroll("pageDown")		
+		
+		objShell.run PLAYPLAY, 0, true
+		
+		Div1.innerHTML = Div1.innerHTML & "Sound has been PLAYED" & "<BR>" 
+		Div1.doScroll("pageDown")		
+		Div1.innerHTML = Div1.innerHTML & "Volume has been restore to original setting" & "<BR>" 
+		Div1.doScroll("pageDown")		
+		
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		FSO.DeleteFolder("\\" & strComputer & "\c$\temp\sound")
+	end sub
+	
+	sub LoadDropDown()
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set Folder = FSO.GetFolder("\\jc1dfs2\applications\desktop\play")
+		Set Files = folder.Files
+		
+		For each FolderIdx in files
+			if instr(FolderIdx.Name, "wav") then
+				Set oNewOpt = document.createElement("OPTION")
+				oNewOpt.Text = FolderIdx.Name
+				oNewOpt.Value = FolderIdx.Name
+				document.sound.grp_selected.Add(oNewOpt)
+				Set oNewOpt = Nothing
+			end if
+		Next
+	end sub
+	
+	function strSoundFile()
+		strSoundFile = document.Sound.grp_selected.value
+	end function
+	
+	sub copyfiles(strComputer)
+		retValue = strSoundFile
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		
+		if FSO.FolderExists("\\" & strComputer & "\c$\temp\sound") Then
+			ErrValue = FSO.DeleteFolder("\\" & strComputer & "\c$\temp\sound")
+			If ErrValue <> 0 Then
+				FSO.DeleteFile("\\" & strComputer & "\c$\temp\sound\playsound.vbs")
+				FSO.CopyFile "\\jc1dfs2\applications\desktop\play\playSound.vbs", "\\" & strComputer & "\c$\temp\sound\playSound.vbs"
+				if NOT FSO.FileExists("\\" & strComputer & "\c$\temp\sound\" & retValue) then
+					FSO.CopyFile "\\jc1dfs2\applications\desktop\play\" & retValue, "\\" & strComputer & "\c$\temp\sound\" & retValue
+				end If
+			End If
+		end if
+		if NOT FSO.FolderExists("\\" & strComputer & "\c$\temp\sound") then
+			FSO.CreateFolder("\\" & strComputer & "\c$\temp\sound")
+			FSO.CopyFile "\\jc1dfs2\applications\desktop\play\nircmdc.exe", "\\" & strComputer & "\c$\temp\sound\nircmdc.exe"
+			FSO.CopyFile "\\jc1dfs2\applications\desktop\play\nopey.exe", "\\" & strComputer & "\c$\temp\sound\nopey.exe"
+			FSO.CopyFile "\\jc1dfs2\applications\desktop\play\playSound.vbs", "\\" & strComputer & "\c$\temp\sound\playSound.vbs"
+			FSO.CopyFile "\\jc1dfs2\applications\desktop\play\sndrec32.exe", "\\" & strComputer & "\C$\temp\sound\sndrec32.exe"
+			FSO.CopyFile "\\jc1dfs2\applications\desktop\play\"& retValue, "\\" & strComputer & "\c$\temp\sound\" & retValue
+		end if
+	end sub	
+	
+	Function curVol()
+		strComputer = document.Sound.CompName.Value
+		copyfiles strComputer
+		Set objShell = CreateObject("Wscript.Shell")
+		CurrentVol = "cmd.exe /c psexec \\" & strComputer & " c:\temp\sound\nopey.exe vol >> \\jc1dfs2\applications\desktop\play\log.txt"
+		objShell.run CurrentVol, 1, True
+
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set objFile = FSO.OpenTextFile("\\jc1dfs2\applications\desktop\play\log.txt",1)
+		on error resume next
+		thisVol = objFile.ReadLine
+		if thisVol = "" then
+			thisVol = "30"
+		end if
+		newThisVol = right(thisVol,3)
+		thisVol = left(newThisVol,2)
+		curVol = thisVol 
+		objFile.Close
+		FSO.DeleteFile("\\jc1dfs2\applications\desktop\play\Log.txt")
+	end Function
+
+	Sub window_onload()
+		window.resizeTo 500, 500
+		LoadDropDown
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY>
+    <FORM NAME="Sound">
+        <H1>Sound User To and From</H1>
+        <TABLE border=0>
+			<TR>
+                <TD>Enter Computer Name:
+                <INPUT id=CompName name=CompName size=20></TD>
+            </TR>
+			<TR>
+                <TD>
+					Sound File:
+					<select id="grp_selected">
+					</select>	
+				</TD>
+            </TR>
+			<TR>
+                <TD>Enter Volume for Sound:
+				<INPUT id=VolPer name=VolPer size=3></TD>
+            </TR>
+            <TR>
+                <TD><INPUT id=cmdContinue name=cmdContinue
+                     type=button value="Continue"> 
+                </TD>
+            </TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 200px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+        </TABLE>
+    </FORM>
+	<span id="Junk"></span>
+</BODY>
+</HTML>

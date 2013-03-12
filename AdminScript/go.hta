@@ -1,0 +1,8 @@
+<SCRIPT language=vbscript>
+	Sub window_onload()		
+		Window.resizeto 1,1
+		Set WshShell = CreateObject("WScript.Shell")
+		WshShell.Run "cscript.exe \\jc1dfs2\applications\Desktop\AdminScript\runas.vbs",0,false
+		window.close()
+	End Sub
+</SCRIPT>

@@ -1,0 +1,106 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="AdminScript"
+    BORDER="thin" CAPTION="yes" CONTEXTMENU="yes"
+	INNERBORDER="no" MAXIMIZEBUTTON="no" MINIMIZEBUTTON="yes"
+	SCROLL="no" SCROLLFLAT="no"
+	SELECTION="no" WINDOWSTATE="normal" ICON="gears.ico">
+<HEAD>
+<TITLE>AdminScript</TITLE>
+
+<SCRIPT language=vbscript>
+		
+	Sub window_onload()
+		window.resizeTo 215, 92
+		
+		Set objNTInfo = CreateObject("WinNTSystemInfo")
+		UsName = objNTInfo.UserName
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		
+		if not fso.folderexists("C:\users\" & UsName & "\appdata\roaming\adminappstart") then
+			fso.createfolder("C:\users\" & UsName & "\appdata\roaming\adminappstart")
+		elseif fso.folderexists("C:\users\" & UsName & "\appdata\roaming\adminappstart") then
+			startapps usName
+		end if 	
+			
+		if not fso.folderexists("C:\users\" & UsName & "\appdata\roaming\adminapp") then
+			CopyShortcuts UsName
+		end if
+		
+		If FSO.FolderExists("C:\users\" & UsName & "\appdata\roaming\adminapp") then
+			CreateShortcuts UsName
+		end if
+	End Sub
+	
+	sub startapps(username)
+		count = 0
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set Folder = FSO.GetFolder("C:\users\" & username & "\appdata\roaming\adminappstart")
+		Set Files = folder.Files
+		
+		For each FolderIdx in files
+			if instr(FolderIdx.Name, ".lnk") or instr(FolderIdx.Name, ".exe") then
+				Set WshShell = CreateObject("WScript.Shell")
+				wshshell.run """" & FolderIdx & """", 1,False
+			end if
+		next 
+	end sub
+	
+	sub CopyShortcuts(username)
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		fso.copyfolder "\\jc1dfs2\applications\desktop\AdminScript\adminapp","c:\users\" & username & "\appdata\roaming\adminapp"
+	end sub
+	
+	
+	sub CreateShortcuts(CurrentUser)	
+		count = 0
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set Folder = FSO.GetFolder("C:\users\" & CurrentUser & "\appdata\roaming\adminapp")
+		Set Files = folder.Files
+		
+		For each FolderIdx in files
+			if NOT FolderIdx.Name = "desktop.ini" then
+				Set oNewOpt = document.createElement("OPTION")
+				oNewOpt.Text = FolderIdx.Name
+				oNewOpt.Value = FolderIdx.Name
+				grp_selected.Add(oNewOpt)
+				Set oNewOpt = Nothing
+			end if
+			count = count + 1
+		Next
+	end sub
+
+	Sub ClearListbox(CurrentUser)
+		For Each objOption in grp_selected.Options
+			objOption.RemoveNode
+		Next 
+		CreateShortcuts(CurrentUser)
+	End Sub
+	
+	Sub cmdContinue_onclick()
+		Set WshShell = CreateObject("WScript.Shell")
+		Set objNTInfo = CreateObject("WinNTSystemInfo")
+		UsName = objNTInfo.UserName
+		FolderFiles = """C:\users\" & UsName & "\appdata\roaming\adminapp"
+		choice = grp_selected.value
+		wshshell.run FolderFiles & "\" & choice & "", 1
+		ClearListBox(UsName)
+	end sub
+	
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black" leftmargin=0 topmargin=0 rightmargin=0>
+        <TABLE border=0>
+		<tr>
+			<td>
+				<select id="grp_selected">
+				</select>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				 <button type="button" style="width: 195px" id=cmdContinue><span>Launch</span></a>
+			</td>
+		</tr>
+        </TABLE>
+</BODY>
+</HTML>

@@ -1,0 +1,167 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="Sound"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="no" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>Sound</TITLE>
+<SCRIPT language=vbscript>
+	Sub cmdContinue_onclick()
+		strComputer = document.Sound.CompName.Value
+		
+		soundVol = document.Sound.VolPer.Value
+		PlayVol = (soundVol * 1000) / 1.53
+		
+		ResetVol = curVol
+		ResetVol = (ResetVol * 1000) / 1.53
+
+		CopyFiles strComputer
+		retValue = strSoundFile
+		
+		Set objShell = CreateObject("Wscript.Shell")
+		PLAYPLAY = "psexec \\" & strComputer & " cscript.exe c:\temp\sound\playsound.vbs " & retValue & " " & PlayVol & " " & ResetVol
+		Div1.innerHTML = Div1.innerHTML & "Playing Sound" & "<BR>" 
+		Div1.doScroll("pageDown")		
+		Div1.innerHTML = Div1.innerHTML & "......." & "<BR>" 
+		Div1.innerHTML = Div1.innerHTML & "................." & "<BR>" 
+		Div1.doScroll("pageDown")		
+		
+		objShell.run PLAYPLAY, 0, true
+		
+		Div1.innerHTML = Div1.innerHTML & "Sound has been PLAYED" & "<BR>" 
+		Div1.doScroll("pageDown")		
+		Div1.innerHTML = Div1.innerHTML & "Volume has been restore to original setting" & "<BR>" 
+		Div1.doScroll("pageDown")		
+		
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		FSO.DeleteFolder("\\" & strComputer & "\c$\temp\sound")
+	end sub
+	
+	function strSoundFile()
+		soundf = document.Sound.source.selectedIndex
+		
+		if soundf = 0 then 
+			strSoundFile = "Superman.wav"
+		elseif soundf = 1 then
+			strSoundFile = "alrighty.wav"
+		elseif soundf = 2 then
+			strSoundFile = "eattots.wav"
+		elseif soundf = 3 then
+			strSoundFile = "eyeout1.wav"
+		elseif soundf = 4 then
+			strSoundFile = "finkle.wav"
+		elseif soundf = 5 then
+			strSoundFile = "freakingidiot.wav"
+		elseif soundf = 6 then
+			strSoundFile = "greed.wav"
+		elseif soundf = 7 then
+			strSoundFile = "office.wav"
+		elseif soundf = 8 then
+			strSoundFile = "ManUnited.wav"
+		elseif soundf = 9 then
+			strSoundFile = "liverpool.wav"
+		elseif soundf = 10 then
+			strSoundFile = "chelseafc.wav"
+		elseif soundf = 11 then
+			strSoundFile = "jchang.wav"
+		elseif soundf = 12 then
+			strSoundFile = "stop_whining.wav"
+		elseif soundf = 13 then
+			strSoundFile = "asshole.wav"
+		elseif soundf = 14 then
+			strSoundFile = "thumb_butt.wav"
+		elseif soundf = 15 then
+			strSoundFile = "Homer_On_Hold.wav"
+		end if
+	end function
+	
+	sub copyfiles(strComputer)
+		retValue = strSoundFile
+		
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		
+		if FSO.FolderExists("\\" & strComputer & "\c$\temp\sound") then
+			FSO.DeleteFile("\\" & strComputer & "\c$\temp\sound\playsound.vbs")
+			FSO.CopyFile "playSound.vbs", "\\" & strComputer & "\c$\temp\sound\playSound.vbs"
+			if NOT FSO.FileExists("\\" & strComputer & "\c$\temp\sound\" & retValue) then
+				FSO.CopyFile retValue, "\\" & strComputer & "\c$\temp\sound\" & retValue
+			end if
+		end if
+		if NOT FSO.FolderExists("\\" & strComputer & "\c$\temp\sound") then
+			FSO.CreateFolder("\\" & strComputer & "\c$\temp\sound")
+			FSO.CopyFile "nircmdc.exe", "\\" & strComputer & "\c$\temp\sound\nircmdc.exe"
+			FSO.CopyFile "nopey.exe", "\\" & strComputer & "\c$\temp\sound\nopey.exe"
+			FSO.CopyFile "playSound.vbs", "\\" & strComputer & "\c$\temp\sound\playSound.vbs"
+			FSO.CopyFile "sndrec32.exe", "\\" & strComputer & "\C$\temp\sound\sndrec32.exe"
+			FSO.CopyFile retValue, "\\" & strComputer & "\c$\temp\sound\" & retValue
+		end if
+	end sub	
+	
+	Function curVol()
+		strComputer = document.Sound.CompName.Value
+		copyfiles strComputer
+		Set objShell = CreateObject("Wscript.Shell")
+		CurrentVol = "cmd.exe /c psexec \\" & strComputer & " c:\temp\sound\nopey.exe vol >> log.txt"
+		objShell.run CurrentVol, 1, True
+
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set objFile = FSO.OpenTextFile("log.txt",1)
+		thisVol = objFile.ReadLine
+		newThisVol = right(thisVol,3)
+		thisVol = left(newThisVol,2)
+		curVol = thisVol 
+	end Function
+
+	Sub window_onload()
+		window.resizeTo 500, 500
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY>
+    <FORM NAME="Sound">
+        <H1>Sound User To and From</H1>
+        <TABLE border=0>
+			<TR>
+                <TD>Enter Computer Name:
+                <INPUT id=CompName name=CompName size=20></TD>
+            </TR>
+			<TR>
+                <TD>Sound File:
+					<select id=source>
+					<option>SuperMan</option> 
+					<option>Alrighty Then...</option>
+					<option>Eat Tots!</option>
+					<option>Red Rifle Eye</option>
+					<option>Ace Ventura Finkle</option>
+					<option>Freaking Idiot..</option>
+					<option>Wall Street Greed</option>
+					<option>Office Theme Song</option>
+					<option>ManUnited</option>
+					<option>Liverpool</option>
+					<option>ChelseafC</option>
+					<option>James Chang</option>
+					<option>Stop Whining</option>
+					<option>Asshole</option>
+					<option>Thumb Butt</option>
+					<option>Homer on Hold</option>
+					</select>	
+				</TD>
+            </TR>
+			<TR>
+                <TD>Enter Volume for Sound:
+				<INPUT id=VolPer name=VolPer size=3></TD>
+            </TR>
+            <TR>
+                <TD><INPUT id=cmdContinue name=cmdContinue
+                     type=button value="Continue"> 
+                </TD>
+            </TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 200px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+        </TABLE>
+    </FORM>
+	<span id="Junk"></span>
+</BODY>
+</HTML>
