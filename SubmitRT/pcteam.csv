@@ -1,0 +1,90 @@
+SUB,CATEGORY
+Install/Remove,Application
+License Audit/Cleanup,Application
+Request,Application
+Troubleshooting/Repair,Application
+Accessories,Blackberry
+Application Install,Blackberry
+Enable Global Data Rates,Blackberry
+Enterprise Activation,Blackberry
+Issue Loaner Device,Blackberry
+Issue New/Replacement,Blackberry
+Order Device,Blackberry
+Other,Blackberry
+Reset Voicemail Pass,Blackberry
+Return/Suspend,Blackberry
+Troubleshooting,Blackberry
+Account Set-Up/Transfer/Termination,Bloomberg
+B Unit,Bloomberg
+Exchanges Modification,Bloomberg
+Keyboard Audio,Bloomberg
+Facilities Hardware Upgrade/Refresh,Branch Office
+Network Hardware Upgrade/Refresh,Branch Office
+PC Hardware Upgrade/Refresh,Branch Office
+Server Hardware Upgrade/Refresh,Branch Office
+Assist External Clients/Vendor,Conference Room
+Assist In Meetings,Conference Room
+Hardware/Projector,Conference Room
+Laptop Set-Up,Conference Room
+Testing,Conference Room
+WebEx,Conference Room
+Annual DR,DR
+Pre-DR,DR
+Build/Image,Desktop
+Desk Move,Desktop
+Local Admin Rights Modification/Clean-Up,Desktop
+Mouse/Keyboard,Desktop
+Not Responding,Desktop
+Repair,Desktop
+Replace,Desktop
+Testing,Desktop
+Troubleshooting,Desktop
+Distribution List,Email
+Mailbox Cleanup/Archiving,Email
+Troubleshooting,Email
+RepliFax Request/Change,Fax
+Troubleshooting,Fax
+Reset PIN,Good For Enterprise
+Setup New User,Good For Enterprise
+Troubleshooting,Good For Enterprise
+Employee Departure,HR
+New Hire Set-Up,HR
+New Hire Set-Up Name-Change,HR
+Build/Image,Laptop
+Loaner,Laptop
+Refresh,Laptop
+Repair,Laptop
+Troubleshooting,Laptop
+Install/Remove/Replace,Monitor
+Request,Monitor
+Testing,Monitor
+Troubleshooting,Monitor
+Access Request,Network Folder
+I Drive Cleanup,Network Folder
+I Drive Space Request,Network Folder
+Modification Of Permission,Network Folder
+AD Update,Other
+Other,Other
+Proxy Troubleshooting,Other
+Remedy Updates/Cleanup,Other
+Expired Password,Password
+Forgot Password,Password
+Password Reset,Password
+Install/Remove,Printer
+Jam/Repair,Printer
+Mapping,Printer
+New Queue/IP Set-Up,Printer
+Print Queue Problems,Printer
+Request,Printer
+Testing,Printer
+Troubleshooting,Printer
+Hardware Request,Purchasing Order
+PO Submission,Purchasing Order
+Software Request,Purchasing Order
+Blackberry Token Install,VPN
+PIN Reset,VPN
+Troubleshooting,VPN
+User Setup,VPN
+Manual Transfer/Set-Up,Visitor Setup
+Robocopy,Visitor Setup
+

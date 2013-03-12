@@ -1,0 +1,38 @@
+SUB,CATEGORY
+Disconnect,ARD
+Order New,ARD
+Troubleshooting,ARD
+System Change,Call Manager System
+Troubleshooting,Call Manager System
+Headset,Cisco Phone
+Move/Add/Change,Cisco Phone
+New,Cisco Phone
+Troubleshooting,Cisco Phone
+Decommission Phone / Voicemail,Employee Departure
+Move/Add/Change,Fax
+Replifax,Fax
+Troubleshoot,Fax
+System Change,IPC System
+Troubleshooting,IPC System
+Cisco Phone and Voicemail,New Hire Setup
+Turret- New Trid,New Hire Setup
+Tulsa,Other
+MAC CallRex User,Recorder
+MAC IPC User,Recorder
+System Change,Recorder
+Troubleshooting,Recorder
+Update / Add number,Rolodex
+DID,Telco Issues/ Requests
+POTS Line,Telco Issues/ Requests
+PRI,Telco Issues/ Requests
+Add Line,Turret
+Headset,Turret
+Intercom,Turret
+TRID,Turret
+Troubleshooting,Turret
+System Change,Unity System
+Troubleshooting,Unity System
+Add new,Voicemail
+Reset Password,Voicemail
+Troubleshooting,Voicemail
+

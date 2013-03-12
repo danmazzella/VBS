@@ -1,0 +1,96 @@
+SUB,CATEGORY
+AD,Admin
+DHCP,Admin
+DMZ,Admin
+DNS,Admin
+FTP Upload/Download,Admin
+File/Folder Access,Admin
+Group Policy Add/Change/ Delete,Admin
+NAC,Admin
+NAV,Admin
+SNMP,Admin
+SQL,Admin
+SharePoint,Admin
+Symantec,Admin
+User Data Archival,Admin
+User Move,Admin
+ADP,Applications
+AOL IM,Applications
+Agresso,Applications
+Altiris,Applications
+BIC,Applications
+Boss II,Applications
+Citrix,Applications
+Cogent,Applications
+Compliance Accelerator,Applications
+Discovery Accelerator,Applications
+Global Oasys,Applications
+Global Risk,Applications
+Great Plains,Applications
+Hotspot FX,Applications
+IE,Applications
+KD,Applications
+Knightnet,Applications
+LoanNet,Applications
+MSN,Applications
+PATS,Applications
+Pivot,Applications
+Replix Fax,Applications
+Reports,Applications
+Reuters Messaging,Applications
+Sales Force,Applications
+Sentry,Applications
+Social Media,Applications
+Trading Technology TT,Applications
+UBS Interchange,Applications
+WebEx,Applications
+Yahoo,Applications
+DR Test,DR
+Desktops,Desktops/Laptops
+Laptops,Desktops/Laptops
+NVIDIA,Desktops/Laptops
+Reboot,Desktops/Laptops
+Archive/PST,Email
+Barracuda,Email
+BlackBerry,Email
+Distribution List,Email
+Failback/Failover,Email
+GetGood,Email
+LDAP,Email
+Mailbox,Email
+Message Tracking,Email
+Public Folder,Email
+Spam,Email
+Autocat,Facilities
+BMS,Facilities
+CCure,Facilities
+Cable Boxes,Facilities
+Siemens,Facilities
+TVs,Facilities
+OS Troubleshoot,OS
+Upgrade,OS
+App Patch,Patches
+Security Patch,Patches
+Windows Patch,Patches
+Add/Remove Drivers,Printers
+Add/Remove Printer,Printers
+Add/Remove Queues,Printers
+Scanner,Printers
+Backup/Restore,Servers
+Battery Replace,Servers
+Decommission,Servers
+Disk Cleanup,Servers
+Driver Upgrade,Servers
+Hardware Replace,Servers
+ILO,Servers
+Network Teaming,Servers
+Reboot,Servers
+Rebuild,Servers
+Software Install,Servers
+Troubleshoot Response,Servers
+Win Server 2008 R2 (64-bit) Setup,Servers
+VM Machine Restart,VM
+W7 Workstation Setup,VM
+Win Server 2008 R2 (64-bit) Setup,VM
+XP Workstation Setup,VM
+

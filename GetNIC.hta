@@ -1,0 +1,283 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="FindNIC"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>FindNIC</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub OpenCmp_onclick()
+		Dim SH
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "c:\temp\DanScripts\FindNIC\computernames.txt"
+		Set SH = Nothing 
+	end sub
+	
+	Sub OpenTemp_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\FindNIC"
+		Set SH = Nothing 
+	end sub
+	
+	
+	
+	Sub PcOffline_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\FindNIC\PcOffline.txt") then
+			SH.Run "C:\temp\DanScripts\FindNIC\PcOffline.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+	
+	Sub NicCSV_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\FindNIC\NicSpeeds.csv") then
+			SH.Run "C:\temp\DanScripts\FindNIC\NicSpeeds.csv"
+		end if
+		Set SH = Nothing 
+	end sub
+		
+	
+	
+	
+	
+	Sub cmdContinue_onclick()
+		Set WshShell = CreateObject("WScript.Shell")
+		
+		Const wbemFlagReturnImmediately = &h10
+		Const wbemFlagForwardOnly = &h20
+		
+		ReadTXT
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""NIC Speed"""		
+		msgbox("Script Complete")
+	End Sub
+	
+	sub readtxt()
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		set objtextfile = fso.opentextfile("c:\temp\danscripts\FindNIC\computernames.txt")
+		if document.FindNIC.singlepc.checked then
+			onPC = PingPC(document.FindNIC.compname.value)
+			if onPC = true then
+				GetSpeed document.FindNIC.compname.value
+			end if
+		else
+			do until objtextfile.AtEndOfStream
+				TxtLine = objtextfile.readline
+				onPC = PingPC(TxtLine)
+				if onPC = true then
+					GetSpeed TxtLine
+				end if
+			loop
+		end if
+	end sub
+
+	function PingPC(msg)
+		'Ping
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & msg & "'")  
+		
+		For Each objStatus in objPing  
+			If  IsNull(objStatus.ReplySize) Then  
+				Div1.innerHTML = Div1.innerHTML & msg & " - Offline" & "<BR>" & "<BR>"
+				Div1.doScroll("pageDown")
+				Set FileSystem = CreateObject("Scripting.FileSystemObject")
+				Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\FindNIC\pcOffline.txt", 8, True)
+				WriteStuff.WriteLine(msg)
+				WriteStuff.Close
+				SET WriteStuff = NOTHING
+				SET FileSystem = NOTHING     
+			else
+				PingPC = true
+			end if
+		Next  
+		Set objPing=Nothing  
+		Set objStatus=Nothing  
+	end function
+	
+	Sub GetSpeed(strComputer)	
+		Const HKEY_CURRENT_USER = &H80000001
+		Const HKEY_LOCAL_MACHINE = &H80000002
+		Const REG_SZ = 1
+		const REG_EXPAND_SZ = 2
+		const REG_BINARY = 3
+		const REG_DWORD = 4
+		const REG_MULTI_SZ = 7
+		Dim arIPs()
+
+		on error resume next
+		Set dNICs = CreateObject("Scripting.Dictionary")
+		Set oWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+		Set oReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
+		stNetPath = "SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002bE10318}"
+		arBroadcom = Array("Auto", "Invalid", "Invalid", "10 Mb Half", "10 Mb Full", "100 Mb Half", "100 Mb Full")
+		arIntel = Array("Auto", "10 Mb Half", "10 Mb Full", "100 Mb Half", "100 Mb Full")
+
+		
+		if NOT error = 0 then
+			msgbox "Error " & strComputer
+		end if
+		
+		Set cNICs = oWMIService.ExecQuery("Select * from Win32_NetworkAdapterConfiguration where IPEnabled=TRUE")
+		For Each oNIC In cNICs
+			If Not dNICs.Exists(oNIC.SettingID) Then
+				For iIP = 0 To UBound(oNIC.IPAddress)
+					Redim Preserve arIPs(iIP)
+					arIPs(iIP) = oNIC.IPAddress(iIP)
+			'		Wscript.Echo "Setting ID: " & oNIC.SettingID & vbTab & _
+			'			"Index: " & oNIC.Index & vbTab & "Card MAC Address: " & oNIC.MACAddress
+				Next
+				dNICs.Add oNIC.SettingID, Join(arIPs, ";") & "~" & oNIC.Index
+			End If
+		Next
+		Set cNICs = Nothing
+		oReg.EnumKey HKEY_LOCAL_MACHINE, stNetPath, arNetKeys
+		For Each stNicID In dNICs.Keys
+			nIndex = 0
+			nIndex = Mid(dNICs(stNicID), InStr(1, dNICs(stNicID), "~", vbBinarycompare) + 1)
+			stIP = ""
+			stIP = Left(dNICs(stNicID), InStr(1, dNICs(stNicID), "~", vbBinarycompare) - 1)
+		'	Wscript.Echo "Index: |" & nIndex & "|"
+			Set cNICs = oWMIService.ExecQuery("Select * from Win32_NetworkAdapter where Index=" & nIndex,,48)
+			bInstalled = False
+			For Each oNIC In cNICs
+				If Not IsNull(oNIC.PNPDeviceID) Then bInstalled = True
+			Next
+			If bInstalled Then
+				For Each stNetKey In arNetKeys
+					stNicKey = stNetPath & "\" & stNetKey
+					'Wscript.Echo stNicKey
+					oReg.EnumValues HKEY_LOCAL_MACHINE, stNicKey, arNicInds, arValueTypes
+					'Wscript.Echo TypeName(arNicInds)
+					If Not IsNull(arNicInds) Then
+						If CBool(Ubound(Filter(arNicInds, "NetCfgInstanceId", True, vbTextcompare)) > CInt(-1)) Then
+							oReg.GetStringValue HKEY_LOCAL_MACHINE, stNicKey, "NetCfgInstanceId", stSetID
+							If StrComp(stSetID, stNicID, vbTextcompare) = 0 Then
+								oReg.GetStringValue HKEY_LOCAL_MACHINE, stNicKey, "DriverDesc", stNicName
+								If Ubound(Filter(arNicInds, "RequestedMediaType", True, vbTextcompare)) > -1 Then
+									oReg.GetStringValue HKEY_LOCAL_MACHINE, stNicKey, "RequestedMediaType", stValue
+									Div1.innerHTML = Div1.innerHTML & "Computer = " & strComputer & "<BR>"
+									Div1.innerHTML = Div1.innerHTML & stNicName & "<BR>" & arBroadcom(CInt(stValue)) & "<BR>" & stIP & "<BR><BR>"
+									Div1.doScroll("pageDown")
+									
+									Set FileSystem = CreateObject("Scripting.FileSystemObject")
+									Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\FindNIC\NicSpeeds.csv", 8, True)
+									WriteStuff.WriteLine(strComputer & "," & stNicName & "," & arBroadcom(CInt(stValue)) & "," & stIP)
+									WriteStuff.Close
+									SET WriteStuff = NOTHING
+									SET FileSystem = NOTHING 									
+								Elseif Ubound(Filter(arNicInds, "*SpeedDuplex", True, vbTextcompare)) > -1 Then
+									oReg.GetStringValue HKEY_LOCAL_MACHINE, stNicKey, "*SpeedDuplex", stValue
+									Div1.innerHTML = Div1.innerHTML & "Computer = " & strComputer & "<BR>"
+									Div1.innerHTML = Div1.innerHTML & stNicName & "<BR>" & arIntel(CInt(stValue)) & "<BR>" & stIP & "<BR><BR>"
+									Div1.doScroll("pageDown")
+									
+									Set FileSystem = CreateObject("Scripting.FileSystemObject")
+									Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\FindNIC\NicSpeeds.csv", 8, True)
+									WriteStuff.WriteLine(strComputer & "," & stNicName & "," & arIntel(CInt(stValue)) & "," & stIP)
+									WriteStuff.Close
+									SET WriteStuff = NOTHING
+									SET FileSystem = NOTHING 	
+								Else
+									msgbox stNicName & vbTab & "Speed/Duplex Unknown" & vbTab & stIP
+								End If
+							End If
+						  End If
+					End If
+				Next
+			End If
+			Set cNICs = Nothing
+		Next
+	End Sub
+
+	Sub window_onload()
+		window.resizeTo 600, 880
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\FindNIC") then
+			FSO.CreateFolder("C:\temp\DanScripts\FindNIC")
+		end if
+		if not fso.fileexists("c:\temp\DanScripts\FindNIC\ComputerNames.txt") then
+			Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\FindNIC\ComputerNames.txt", 8, True)
+		end if
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+	 <FORM NAME="FindNIC">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Find NIC Speed on Computers</H1>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">This requires a list of computers in C:\Temp\GetNIC\ComputerNames</H6>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">and will output to C:\Temp\DanScripts\FindNIC</H6>
+		
+		<input type="checkbox" name="singlePC" onclick="document.FindNIC.CompName.disabled = document.FindNIC.CompName.checked"><STRONG style="color:white">Single Computer?</STRONG>
+		<STRONG style="color:white">Computer Name:</STRONG><input type="text" name="CompName" disabled="disabled">
+		
+        <TABLE border=0>
+            <TR></TR>
+			<TR>
+                <TD>
+					<a class="button" id=cmdContinue href="#"><span>Run Script</span></a>
+					<a class="button" id=OpenCmp href="#"><span>Open ComputerNames</span></a>
+					<a class="button" id=OpenTemp href="#"><span>FindNIC Folder</span></a>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 400px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+			<TR>
+                <TD>
+					 <a class="button" id=PcOffline href="#"><span>PC's Offline</span></a>
+					 <a class="button" id=NicCSV href="#"><span>Open NIC File</span></a>
+				</TD>
+			</TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

@@ -1,0 +1,236 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="JavaVersion"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>JavaVersion</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub OpenCmp_onclick()
+		Dim SH
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "c:\temp\DanScripts\JavaVersion\computernames.txt"
+		Set SH = Nothing 
+	end sub
+	
+	Sub OpenTemp_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\JavaVersion"
+		Set SH = Nothing 
+	end sub
+	
+	Sub cmdContinue_onclick()
+		Set WshShell = CreateObject("WScript.Shell")
+		
+		Const wbemFlagReturnImmediately = &h10
+		Const wbemFlagForwardOnly = &h20
+		
+		ReadTXT
+		msgbox("Script Complete")
+	End Sub
+	
+	Sub PcOffline_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\JavaVersion\PcOffline.txt") then
+			SH.Run "C:\temp\DanScripts\JavaVersion\PcOffline.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+	
+	Sub JavaVer_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\JavaVersion\JavaVer.csv") then
+			SH.Run "C:\temp\DanScripts\JavaVersion\JavaVer.csv"
+		end if
+		Set SH = Nothing 
+	end sub
+		
+	'=====
+	sub ReadTXT()
+		dim FSO, objTextFile
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set objTextFile = FSO.OpenTextFile("c:\temp\DanScripts\JavaVersion\computernames.txt")
+		if document.JavaVersion.singlePC.checked then
+			CheckJava document.JavaVersion.CompName.Value
+		else
+			Do Until objTextFile.AtEndOfStream
+				CheckJava objTextFile.Readline
+			Loop
+		end if
+	end sub
+	'=====
+	
+	
+	sub CheckJava(strComputer)
+		Div1.innerHTML = Div1.innerHTML  & strComputer
+		Div1.doScroll("pageDown")
+		
+		'Ping (Make sure computer is pingable)
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & strComputer & "'")  
+
+		For Each objStatus in objPing  
+			'Computer does not exist
+			If  IsNull(objStatus.ReplySize) Then  
+				Div1.innerHTML = Div1.innerHTML & " - Offline"
+				Div1.doScroll("pageDown")
+				Set FileSystem = CreateObject("Scripting.FileSystemObject")
+				Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\JavaVersion\pcOffline.txt", 8, True)
+				WriteStuff.WriteLine(strComputer)
+				WriteStuff.Close
+				SET WriteStuff = NOTHING
+				SET FileSystem = NOTHING     
+			Else  
+				Set oShell = CreateObject("WScript.Shell")
+				Set oFSO = CreateObject("Scripting.FileSystemObject")
+
+				remsys = "\\" & strComputer & "\c$\windows"
+				sFile = oShell.ExpandEnvironmentStrings(remsys) & "\system32\java.exe"
+				on error resume next
+				version = oFSO.GetFileVersion(sFile)
+				
+				if version = "" then
+					Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\JavaVersion\JavaVer.csv", 8, True)
+					Div1.innerHTML = Div1.innerHTML & " - Error"
+				else
+					rempro = "\\" & strComputer & "\c$\Program Files"
+					PFDir = oShell.ExpandEnvironmentStrings(rempro)
+
+					javaDir = PFDIR & "\Java"
+
+					Set oFolder = oFSO.GetFolder(javaDir)
+					Set colFolders = oFolder.SubFolders
+
+					For Each folder In colFolders
+						if oFSO.FileExists(folder & "\bin\java.exe") then	
+							thisver = oFSO.GetFileVersion(folder & "\bin\java.exe")
+							If thisver = version Then
+								JavaVersion2 = folder & "\"
+							End If
+						end if
+					Next
+					JREV16 = "\\" & strComputer & "\c$\Program Files\Java\jre6\"
+					JREV1620 = "\\" & strComputer & "\c$\Program Files\Java\jre1620\"
+							 
+					Set FileSystem = CreateObject("Scripting.FileSystemObject")
+					Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\JavaVersion\JavaVer.csv", 8, True)
+							
+					JavaVersion2 = LCase(JavaVersion2)
+					JREV16 = LCase(JREV16)
+					JREV1620 = LCase(JREV1620)
+					
+					if JavaVersion2 = JREV16 then
+						Div1.innerHTML = Div1.innerHTML & " - Java 1.6.0.16"
+						Div1.doScroll("pageDown")
+						WriteStuff.WriteLine(StrComputer & ", Java 1.6.0.16")
+					elseif JavaVersion2 = JREV1620 then
+						Div1.innerHTML = Div1.innerHTML & " - Java 1.6.0.20"
+						Div1.doScroll("pageDown")
+						WriteStuff.WriteLine(StrComputer & ", Java 1.6.0.20")
+					else
+						Div1.innerHTML = Div1.innerHTML & " - Java 1.5"
+						Div1.doScroll("pageDown")
+						WriteStuff.WriteLine(StrComputer & ", Java 1.5")
+					end if
+					WriteStuff.Close
+					SET WriteStuff = NOTHING
+					SET FileSystem = NOTHING 
+				end if
+			end if
+			Div1.innerHTML = Div1.innerHTML & "</BR>"
+			Div1.doScroll("pageDown")
+		next
+	end sub
+	
+	
+	Sub window_onload()
+		window.resizeTo 600, 800
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\JavaVersion") then
+			FSO.CreateFolder("C:\temp\DanScripts\JavaVersion")
+		end if
+		if not fso.fileexists("c:\temp\DanScripts\JavaVersion\ComputerNames.txt") then
+			Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\JavaVersion\ComputerNames.txt", 8, True)
+		end if
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+	 <FORM NAME="JavaVersion">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Check What Version of Java</H1>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">This requires a list of computers in C:\Temp\ComputerNames</H6>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">and will output to C:\Temp\DanScripts\JavaVersion</H6>
+		
+		<input type="checkbox" name="singlePC" onclick="document.JavaVersion.CompName.disabled = document.JavaVersion.CompName.checked"><STRONG style="color:white">Single Computer?</STRONG>
+		<STRONG style="color:white">Computer Name:</STRONG><input type="text" name="CompName" disabled="disabled">
+					
+        <TABLE border=0>
+            <TR></TR>
+			<TR>
+                <TD>
+					 <a class="button" id=cmdContinue href="#"><span>Continue</span></a>
+					 <a class="button" id=OpenCmp href="#"><span>Open ComputerNames</span></a>
+					<a class="button" id=OpenTemp href="#"><span>JavaVersion_Folder</span></a>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 400px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+			<TR>
+                <TD>
+					 <a class="button" id=PcOffline href="#"><span>PC's Offline</span></a>
+					<a class="button" id=JavaVer href="#"><span>Java Version</span></a>
+				</TD>
+			</TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

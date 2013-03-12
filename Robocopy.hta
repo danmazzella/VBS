@@ -1,0 +1,366 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="Robocopy"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>Robocopy</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub cmdContinue_onclick()
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		userName = document.Robocopy.userName.value
+		source = document.Robocopy.source.selectedIndex
+		destination = document.Robocopy.destination.selectedIndex
+		
+		on error resume next
+		Set objDomainUser = GetObject("WinNT://Knight/" & UserName & ",user")
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		
+		if ( err ) then 
+			msgBox "Invalid username 1"
+		else
+			if source = 0 then
+				if Left(LCase(userName), 1) < "n" then
+					sourcePath = "\\jc1dfs1\users\" & userName
+				elseif Left(LCase(userName), 1) > "m" then	
+					sourcePath = "\\jc1dfs2\users\" & userName
+				end if
+			elseif source = 1 then
+				sourcePath = "\\at1wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(sourcePath) then
+					sourcePath = "\\at1wsfls01\users$\traveling\" & userName
+				end if
+			elseif source = 2 then
+				sourcePath = "\\bs1wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(sourcePath) then
+					sourcePath = "\\bs1wsfls01\users$\traveling\" & userName
+				end if
+			elseif source = 3 then
+				sourcePath = "\\ch1filer1\users\" & userName
+			elseif source = 4 then
+				sourcePath = "\\da1wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(sourcePath) then
+					sourcePath = "\\da1wsfls01\users$\traveling\" & userName
+				end if
+			elseif source = 5 then
+				sourcePath = "\\hk1dfs1\users\" & userName
+			elseif source = 6 then
+				sourcePath = "\\ln1filer1\users\" & userName
+			elseif source = 7 then
+				sourcePath = "\\sf3wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(sourcePath) then
+					sourcePath = "\\sf3wsfls01\users$\traveling\" & userName
+				end if
+			elseif source = 8 then
+				sourcePath = "\\vt1wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(sourcePath) then
+					sourcePath = "\\vt1wsfls01\users$\traveling\" & userName
+				end if
+			end if
+			
+			if destination = 0 then
+				if Left(LCase(userName), 1) < "n" then
+					destinationPath = "\\jc1dfs1\users\" & userName
+					adPath = "\\jc1dfs1\" & userName
+				elseif Left(LCase(userName), 1) > "m" then
+					destinationPath = "\\jc1dfs2\users\" & userName
+					adPath = "\\jc1dfs2\" & userName
+				end if
+			elseif destination = 1 then
+				destinationPath = "\\at1wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(destinationPath) then
+					destinationPath = "\\at1wsfls01\users$\traveling\" & userName
+				end if
+			elseif destination = 2 then
+				destinationPath = "\\bs1wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(destinationPath) then
+					destinationPath = "\\bs1wsfls01\users$\traveling\" & userName
+				end if
+			elseif destination = 3 then
+				destinationPath = "\\ch1filer1\users\" & userNam
+			elseif destination = 4 then
+				destinationPath = "\\da1wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(destinationPath) then
+					destinationPath = "\\da1wsfls01\users$\traveling\" & userName
+				end if
+			elseif destination = 5 then
+				destinationPath = "\\hk1dfs1\users\" & userName
+				adPath = "\\hk1dfs1\" & userName
+			elseif destination = 6 then
+				destinationPath = "\\ln1filer1\users\" & userName
+				adPath = "\\ln1filer1\" & userName
+			elseif destination = 7 then
+				destinationPath = "\\sf3wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(destinationPath) then
+					destinationPath = "\\sf3wsfls01\users$\traveling\" & userName
+				end if
+			elseif destination = 8 then
+				destinationPath = "\\vt1wsfls01\users$\remote\" & userName
+				if NOT fso.folderexists(destinationPath) then
+					destinationPath = "\\vt1wsfls01\users$\traveling\" & userName
+				end if
+			end if
+			if adPath = "" then 
+				adPath = destinationPath
+			end if
+			
+			Junk.InnerText = "Copy Path: " & adPath
+			
+			command = "c:\scripts\robocopy " & sourcePath & " " & destinationPath & " /e /r:1 /w:1 /purge"
+			
+			correct = MsgBox("Is this correct?" & VbCrLf & command, 4)
+			if correct = 6 then
+				objShell.Run "c:\scripts\robocopy " & sourcePath & " " & destinationPath & " /e /r:1 /w:1 /purge"
+			else
+				MsgBox "Cancel"
+			end if
+		end if
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Robocopy User"""		
+	End Sub
+	
+	Sub updateAD_onclick()
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		
+		UserName = document.Robocopy.UserName.Value
+		if username = "" then msgbox "ENTER USERNAME" end if
+		ADLoc = ADLocation(UserName)
+		
+		destination = document.Robocopy.destination.selectedIndex
+		if destination = 0 then
+			if Left(LCase(userName), 1) < "n" then
+				destinationPath = "\\jc1dfs1\" & userName
+			elseif Left(LCase(userName), 1) > "m" then
+				destinationPath = "\\jc1dfs2\" & userName
+			end if
+		elseif destination = 1 then
+			destinationPath = "\\at1wsfls01\users$\remote\" & userName
+			if NOT fso.folderexists(destinationPath) then
+				destinationPath = "\\at1wsfls01\users$\traveling\" & userName
+			end if
+		elseif destination = 2 then
+			destinationPath = "\\bs1wsfls01\users$\remote\" & userName
+			if NOT fso.folderexists(destinationPath) then
+				destinationPath = "\\bs1wsfls01\users$\traveling\" & userName
+			end if
+		elseif destination = 3 then
+			destinationPath = "\\ch1filer1\users\" & userName
+		elseif destination = 4 then
+			destinationPath = "\\da1wsfls01\users$\remote\" & userName
+			if NOT fso.folderexists(destinationPath) then
+				destinationPath = "\\da1wsfls01\users$\traveling\" & userName
+			end if
+		elseif destination = 5 then
+			destinationPath = "\\hk1dfs1\" & userName
+		elseif destination = 6 then
+			destinationPath = "\\ln1filer1\" & userName
+		elseif destination = 7 then
+			destinationPath = "\\sf3wsfls01\users$\remote\" & userName
+			if NOT fso.folderexists(destinationPath) then
+				destinationPath = "\\sf3wsfls01\users$\traveling\" & userName
+			end if
+		elseif destination = 8 then
+			destinationPath = "\\vt1wsfls01\users$\remote\" & userName
+			if NOT fso.folderexists(destinationPath) then
+				destinationPath = "\\vt1wsfls01\users$\traveling\" & userName
+			end if
+		end if
+		
+		if NOT ADloc = "" then
+			Set objUser = GetObject(ADloc)
+			result = MsgBox ("Replace " & objUser.homeDirectory & " with " & destinationPath, vbYesNo+vbExclamation+vbDefaultButton2, "Replace?")
+			
+			if result = 6 then			 
+				'Note: If an attribute is empty, the entire line will not echo
+				objUser.homeDirectory = destinationPath
+				objUser.SetInfo
+				objUser.homeDrive = "I:"
+				objUser.SetInfo
+				Set objUser = Nothing
+				msgbox "AD path has been updated"
+			else
+				msgbox "AD path has not been updated"
+			end if
+		end if
+	End Sub
+	
+	function ADLocation(strSearch)
+		On Error Resume Next
+
+		'Declare variables
+		Dim strAdsPath
+		Dim strServerName
+		Dim strDefaultDomainNC
+		Dim strADSQuery
+		Dim objQueryResultSet
+		Dim objADOConn
+		Dim objADOCommand
+		Dim objUser
+		Dim intCount
+
+
+		Const adStateOpen = 1
+
+		If strSearch = "/?" Then Call ShowUsage
+
+		'Get the local Computer Name
+		strServerName = WScript.CreateObject("WScript.Network").ComputerName
+
+		'Get the Default Domain Naming Context
+		strDefaultDomainNC = GetObject("LDAP://RootDSE").Get("DefaultNamingContext")
+
+		If (IsEmpty(strDefaultDomainNC)) Then
+		  Wscript.Echo("")
+		  Wscript.Echo("Error: Did not get the Default Naming Context")
+		  Call Cleanup(2)
+		End If
+
+		'Set up the ADO connection required to implement the search.
+		Set objADOConn = CreateObject("ADODB.Connection")
+
+		objADOConn.Provider = "ADsDSOObject"
+		'Connect using current user credentials
+		objADOConn.Open "Active Directory Provider"
+
+		'Code to demonstrate connecting using alternate credentials
+		'objADOConn.Open "", _
+		'  "CN=Administrator,CN=Users," & strDefaultDomainNC, "password"
+
+		'Verify successful connection state
+		If objADOConn.State = adStateOpen Then
+		  Wscript.Echo("")
+		  WScript.Echo("Authentication Successful!")
+		Else
+		  Wscript.Echo("Authentication Failed.")
+		  Call Cleanup(3)
+		End If
+
+		Set objADOCommand = CreateObject("ADODB.Command")
+		Set objADOCommand.ActiveConnection = objADOConn
+
+		'Format search criteria using SQL syntax
+		strADSQuery = "SELECT samAccountName, givenName, sn, AdsPath FROM 'LDAP:// " & _
+		  strDefaultDomainNC & "' WHERE samAccountName = '" & strSearch & "'"
+
+		objADOCommand.CommandText = strADSQuery
+
+		'Execute the search
+		Set objQueryResultSet = objADOCommand.Execute
+
+		If (objQueryResultSet.EOF) Then
+		  Wscript.Echo("")
+		  WScript.Echo("User " & strSearch & " was not found")
+		  Call Cleanup(4)
+		End If
+
+		'Gather and echo some general information about the user
+		WScript.Echo("")
+		Wscript.Echo "Info for search criteria " & strSearch
+		WScript.Echo("")
+
+		intCount = 0
+		While Not objQueryResultSet.EOF
+		  strAdsPath = objQueryResultSet.Fields("AdsPath")
+		  ADLocation = strAdsPath
+		  intCount = intCount + 1
+		  objQueryResultSet.MoveNext
+		Wend
+		objADOConn.Close
+
+		
+	end function
+
+	Sub window_onload()
+		window.resizeTo 500, 500
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+    <FORM NAME="Robocopy">
+         <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Robocopy User To and From</H1>
+        <TABLE border=0>
+            <TR>
+                <TD><STRONG style="color:white">Enter Users Name:</Strong></TD>
+                <TD><INPUT id=userName name=userName size=20></TD>
+            </TR>
+			<TR>
+                <TD><STRONG style="color:white">From this location:</Strong></TD>
+                <TD>
+					<select id=source>
+					<option>JC</option> 
+					<option>AT</option>
+					<option>BS</option>
+					<option>CH</option>
+					<option>DA</option>
+					<option>HK</option>
+					<option>LN</option>
+					<option>SF</option>
+					<option>VT</option>
+					</select>	
+				</TD>
+            </TR>
+			<TR>
+                <TD><STRONG style="color:white">To this location:</Strong></TD>
+                <TD>
+					<select id=destination>
+					<option>JC</option>
+					<option>AT</option>
+					<option>BS</option>
+					<option>CH</option>
+					<option>DA</option>
+					<option>HK</option>
+					<option>LN</option>
+					<option>SF</option>
+					<option>VT</option>
+					</select>	
+				</TD>
+			</TR>
+            <TR>
+                <TD> </TD>
+                <TD>
+					<a class="button" id=cmdContinue href="#"><span>Click to Continue</span></a>
+					<a class="button" id=updateAD href="#"><span>Update AD Path</span></a>.
+                </TD>
+            </TR>
+        </TABLE>
+    </FORM>
+	<span id="Junk"></span>
+</BODY>
+</HTML>

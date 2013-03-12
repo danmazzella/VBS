@@ -1,0 +1,376 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="AddLocalGroup"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal" ICON="addremove.ico"/> 
+<HEAD>
+<TITLE>AddLocalGroup</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub OpenTemp_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\AddLocalGroup"
+		Set SH = Nothing 
+	end sub
+	
+	Sub cmdContinue_onclick()
+		if document.AddLocalGroup.q2(0).checked = true then
+			AddToGroup
+		elseif document.AddLocalGroup.q2(1).checked = true then
+			RemoveFromGroup
+		end if
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Add/Remove User From Local Group/VPN"""
+		msgbox("Script Complete")
+	End Sub
+	
+	Sub ADpath_onclick()
+		UserName = document.AddLocalGroup.UserName.Value
+		if username = "" then msgbox "ENTER USERNAME" end if
+		ADLoc = ADPath(UserName)
+
+		CompName = document.AddLocalGroup.CompName.Value
+		if compname = "" then msgbox "ENTER COMPNAME" end if
+		
+		if NOT ADloc = "" then
+			Set objUser = GetObject(ADloc)
+			
+			result = MsgBox ("Replace " & objUser.wwwHomePage & " with " & CompName, vbYesNo+vbExclamation+vbDefaultButton2, "Replace?")
+			if result = 6 then			 
+				'Note: If an attribute is empty, the entire line will not echo
+				objUser.wwwHomePage = CompName
+				objUser.SetInfo
+				Set objUser = Nothing
+			else
+				msgbox "VPN machine has not been updated"
+			end if
+		end if
+	End Sub
+	
+	Sub ListUser_onClick()
+		CompName = document.AddLocalGroup.CompName.Value
+
+		if document.AddLocalGroup.q1(0).checked = true then
+			CompGroup = "Administrators"
+		elseif document.AddLocalGroup.q1(1).checked = true then
+			CompGroup = "Remote Desktop Users"
+		end if
+				
+		'Ping
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & CompName & "'")  
+		
+		For Each objStatus in objPing  
+			If  IsNull(objStatus.ReplySize) Then  
+				Div1.innerHTML = Div1.innerHTML  & "Computer is offline" & "<BR>"
+				Div1.doScroll("pageDown")
+			Else  
+				'The members of:
+				Set objGroup = GetObject("WinNT://" & CompName & "/" & CompGroup & ",group")
+				Div1.innerHTML = Div1.innerHTML  & "The group " & CompGroup & " members are:" & "<BR>"
+				Div1.doScroll("pageDown")
+
+				'Print out all members
+				For Each objMember In objGroup.Members 
+					Div1.innerHTML = Div1.innerHTML  & objMember.Name & ";<BR> "
+					Div1.doScroll("pageDown")
+				Next
+			end if
+		next
+	end sub
+
+	Sub FillUser_onClick()
+		CompName = document.AddLocalGroup.CompName.Value
+		Set objWMIService = GetObject("winmgmts:\\" & CompName & "\root\cimv2")
+		Set colItems = objWMIService.ExecQuery("Select * from Win32_ComputerSystem",,48)
+		For Each objItem in colItems
+			on error resume next
+			usname = right(objItem.Username,len(objItem.UserName)-7)
+			if err <> 0 then
+				msgbox "No user logged in"
+				err.clear
+			end if
+			document.AddLocalGroup.UserName.Value = UsName
+		Next
+		Set objItem = Nothing: Set colItems = Nothing: Set objWMIService = Nothing
+	End sub
+	
+	sub AddToGroup()
+		CompName = document.AddLocalGroup.CompName.Value
+
+		if document.AddLocalGroup.q1(0).checked = true then
+			CompGroup = "Administrators"
+		elseif document.AddLocalGroup.q1(1).checked = true then
+			CompGroup = "Remote Desktop Users"
+		end if
+	
+		'Ping (Make sure computer is pingable)
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & CompName & "'")  
+		
+		For Each objStatus in objPing  
+			'Computer does not exist
+			If  IsNull(objStatus.ReplySize) Then  
+				Div1.innerHTML = Div1.innerHTML  & "Computer is offline, No user added <BR>"  
+				Div1.doScroll("pageDown")
+			Else  
+				'Enter Username
+				UserName = document.AddLocalGroup.UserName.Value
+				'Check if valid username
+				on error resume next 
+				Set objDomainUser = GetObject("WinNT://Knight/" & UserName & ",user")
+				if ( err ) then 
+					Div1.innerHTML = Div1.innerHTML  & "Invalid username <BR>"
+					Div1.doScroll("pageDown")
+				else
+					'If Member Exists	
+					Set objLocalGroup = GetObject("WinNT://" & CompName & "/" & CompGroup & ",group")
+					If (objLocalGroup.IsMember(objDomainUser.ADsPath) = False) Then
+						'Add user to Group
+						objLocalGroup.Add(objDomainUser.ADsPath)
+						
+						'Job was Complete!
+						Div1.innerHTML = Div1.innerHTML  & "The user " & UserName & " was added to the group " & CompGroup & "<BR>"
+						Div1.doScroll("pageDown")
+					Else
+						Div1.innerHTML = Div1.innerHTML  & "User already exists in Remote Desktop <BR>"
+						Div1.doScroll("pageDown")
+					End If				
+			
+				End If
+			End If
+		Next
+	end sub
+	
+	sub RemoveFromGroup
+		dim strComputer, CompGroup, strMember, objLocalGroup, objDomainUser, strRemove
+
+		CompName = document.AddLocalGroup.CompName.Value
+
+		if document.AddLocalGroup.q1(0).checked = true then
+			CompGroup = "Administrators"
+		elseif document.AddLocalGroup.q1(1).checked = true then
+			CompGroup = "Remote Desktop Users"
+		end if
+		
+		'Ping
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & CompName & "'")  
+		
+		For Each objStatus in objPing  
+			If  IsNull(objStatus.ReplySize) Then  
+				Div1.innerHTML = Div1.innerHTML  & "Computer is offline, no user removed <BR>"
+				Div1.doScroll("pageDown")
+			Else  
+				strMember = document.AddLocalGroup.UserName.Value
+				on error resume next 
+				Set objDomainUser = GetObject("WinNT://Knight/" & strMember & ",user")
+				if ( err ) then 
+					Div1.innerHTML = Div1.innerHTML  & "Invalid username <BR>"
+					Div1.doScroll("pageDown")
+				else
+					Set objLocalGroup = GetObject("WinNT://" & CompName & "/" & CompGroup & ",group")
+					objLocalGroup.Remove(objDomainUser.ADsPath)
+					Div1.innerHTML = Div1.innerHTML  & "The user " & strMember & " was removed from the group " & CompGroup & "<BR>"
+					Div1.doScroll("pageDown")
+				end if
+			End if
+		Next
+	end sub
+	
+	
+	function ADPath(strSearch)
+		On Error Resume Next
+
+		'Declare variables
+		Dim strAdsPath
+		Dim strServerName
+		Dim strDefaultDomainNC
+		Dim strADSQuery
+		Dim objQueryResultSet
+		Dim objADOConn
+		Dim objADOCommand
+		Dim objUser
+		Dim intCount
+
+
+		Const adStateOpen = 1
+
+		If strSearch = "/?" Then Call ShowUsage
+
+		'Get the local Computer Name
+		strServerName = WScript.CreateObject("WScript.Network").ComputerName
+
+		'Get the Default Domain Naming Context
+		strDefaultDomainNC = GetObject("LDAP://RootDSE").Get("DefaultNamingContext")
+
+		If (IsEmpty(strDefaultDomainNC)) Then
+		  Wscript.Echo("")
+		  Wscript.Echo("Error: Did not get the Default Naming Context")
+		  Call Cleanup(2)
+		End If
+
+		'Set up the ADO connection required to implement the search.
+		Set objADOConn = CreateObject("ADODB.Connection")
+
+		objADOConn.Provider = "ADsDSOObject"
+		'Connect using current user credentials
+		objADOConn.Open "Active Directory Provider"
+
+		'Code to demonstrate connecting using alternate credentials
+		'objADOConn.Open "", _
+		'  "CN=Administrator,CN=Users," & strDefaultDomainNC, "password"
+
+		'Verify successful connection state
+		If objADOConn.State = adStateOpen Then
+		  Wscript.Echo("")
+		  WScript.Echo("Authentication Successful!")
+		Else
+		  Wscript.Echo("Authentication Failed.")
+		  Call Cleanup(3)
+		End If
+
+		Set objADOCommand = CreateObject("ADODB.Command")
+		Set objADOCommand.ActiveConnection = objADOConn
+
+		'Format search criteria using SQL syntax
+		strADSQuery = "SELECT samAccountName, givenName, sn, AdsPath FROM 'LDAP:// " & _
+		  strDefaultDomainNC & "' WHERE samAccountName = '" & strSearch & "'"
+
+		objADOCommand.CommandText = strADSQuery
+
+		'Execute the search
+		Set objQueryResultSet = objADOCommand.Execute
+
+		If (objQueryResultSet.EOF) Then
+		  Wscript.Echo("")
+		  WScript.Echo("User " & strSearch & " was not found")
+		  Call Cleanup(4)
+		End If
+
+		'Gather and echo some general information about the user
+		WScript.Echo("")
+		Wscript.Echo "Info for search criteria " & strSearch
+		WScript.Echo("")
+
+		intCount = 0
+		While Not objQueryResultSet.EOF
+		  strAdsPath = objQueryResultSet.Fields("AdsPath")
+		  ADPath = strAdsPath
+		  intCount = intCount + 1
+		  objQueryResultSet.MoveNext
+		Wend
+		objADOConn.Close
+
+		
+	end function
+	
+	
+	Sub window_onload()
+		window.resizeTo 600, 800
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\AddLocalGroup") then
+			FSO.CreateFolder("C:\temp\DanScripts\AddLocalGroup")
+		end if
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+	 <FORM NAME="AddLocalGroup">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Add/Remove user from Local Group</H1>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">This can add or remove user from Administrator or Remote Desktop</H6>
+        <TABLE border=0>
+			<TR>
+                <TD>
+					<STRONG style="text-align:center;font-family:arial;color:white;font-size:15px;">Enter Computer Name:</STRONG>
+					<INPUT id=CompName name=CompName size=20>
+				</TD>
+            </TR> 
+			<TR>
+				<TD>
+					<STRONG style="text-align:center;font-family:arial;color:white;font-size:15px;">Administrator or Remote Desktop??</STRONG>
+					<INPUT TYPE="radio" NAME="q1" VALUE="y"><STRONG style="text-align:center;font-family:arial;color:white;font-size:15px;">Administrator</STRONG>
+					<INPUT TYPE="radio" NAME="q1" VALUE="n" checked><STRONG style="text-align:center;font-family:arial;color:white;font-size:15px;">Remote Desktop</STRONG>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<a class="button" id=ListUser href="#"><span>List Users</span></a>
+					<a class="button" id=FillUser href="#"><span>Autofill Users</span></a>
+				</TD>
+			</TR>
+			<TR>
+                <TD>
+					<STRONG style="text-align:center;font-family:arial;color:white;font-size:15px;">Enter User Name:</STRONG>
+					<INPUT id=UserName name=UserName size=20>
+				</TD>
+            </TR> 
+			<TR>
+				<TD>
+					<STRONG style="text-align:center;font-family:arial;color:white;font-size:15px;">Add or Remove User??</STRONG>
+					<INPUT TYPE="radio" NAME="q2" VALUE="y" checked><STRONG style="text-align:center;font-family:arial;color:white;font-size:15px;">Add</STRONG>
+					<INPUT TYPE="radio" NAME="q2" VALUE="n"><STRONG style="text-align:center;font-family:arial;color:white;font-size:15px;">Remove</STRONG>
+				</TD>
+			</TR>
+			<TR>
+                <TD>
+					<a class="button" id=cmdContinue href="#"><span>Run Script</span></a>
+					<a class="button" id=OpenTemp href="#"><span>Open AddLocalGroup Folder</span></a>.
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 300px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+			<TR>
+                <TD>
+					<a class="button" id=ADpath href="#"><span>Click to update users VPN workstation</span></a>
+				</TD>
+			</TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

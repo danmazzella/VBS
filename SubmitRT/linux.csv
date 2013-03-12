@@ -1,0 +1,108 @@
+SUB,CATEGORY
+Disable User access,Accounts
+NIS - Change,Accounts
+NIS - New,Accounts
+NIS - Remove,Accounts
+New FTP account,Accounts
+New local Account,Accounts
+Other,Accounts
+ssh keys,Accounts
+Install RPM Package,Applications
+JDK Install,Applications
+New RPM Package,Applications
+Oracle Setup,Applications
+Other,Applications
+Tibco Install,Applications
+Tomcat,Applications
+New Feature,BestPractical
+New Queue,BestPractical
+Other,BestPractical
+Troubleshooting,BestPractical
+Disable HT,Configuration
+High Performance Bios setting,Configuration
+NIC Configuration,Configuration
+OS Tuning,Configuration
+Other,Configuration
+Reboot schedule,Configuration
+sudo changes,Configuration
+ETG Server Check,Daily Checks
+HPSIM Check,Daily Checks
+Hostinfo checks,Daily Checks
+ILO Check,Daily Checks
+Nitemond Check,Daily Checks
+Other,Daily Checks
+SNMP/HP MIB Check,Daily Checks
+Array Battery - Replacement,Hardware Replacement
+Array Controller - Replacement,Hardware Replacement
+Fusion - Replacement,Hardware Replacement
+HBA - Replacement,Hardware Replacement
+Hard Drive - Replacement,Hardware Replacement
+Memory - Replacement,Hardware Replacement
+NIC,Hardware Replacement
+Other,Hardware Replacement
+Power Supply - Replacement,Hardware Replacement
+Server - Replacement,Hardware Replacement
+HBA - Request,Hardware Request
+Hard Drive - Request,Hardware Request
+Memory - Request,Hardware Request
+NIC - Request,Hardware Request
+Other,Hardware Request
+PO Submission,Hardware Request
+Server - Request,Hardware Request
+Configurations,Inquiry
+General,Inquiry
+Hardware,Inquiry
+Software,Inquiry
+Storage,Inquiry
+Troubleshooting,Inquiry
+New Build,Linux Desktops
+Other,Linux Desktops
+Troubleshooting,Linux Desktops
+Create new script,Scripts
+Modify/Troubleshoot script,Scripts
+Other,Scripts
+Benchmark,Server
+Decommission,Server
+Driver Upgrade,Server
+Final check and handoff,Server
+Firmware upgrades,Server
+Handoff,Server
+IP Changes,Server
+New Build,Server
+OS Upgrade,Server
+Other,Server
+Re-IP/Move,Server
+Reboot,Server
+Rebuild,Server
+Relocation,Server
+Rename,Server
+Shuffle/Swap,Server
+Storage,Server
+Testing,Server
+Troubleshooting,Server
+VMWare Build,Server
+Install,Service
+Troubleshooting,Service
+Upgrade,Service
+Backup - New Job,Storage
+Backup - Restore Job,Storage
+Backup - Troubleshooting,Storage
+Fusion - Install,Storage
+Fusion - Troubleshooting,Storage
+Fusion - Upgrade,Storage
+NAS,Storage
+NFS,Storage
+NetApp Quota Change,Storage
+Other,Storage
+Samba,Storage
+Usage,Storage
+Volumes,Storage
+Worm Archive,Storage
+Worm Retrieval,Storage
+iSCSI,Storage
+HBA - Testing,Testing
+NIC - Testing,Testing
+Other,Testing
+Server Platform - Testing,Testing
+Storage - Testing,Testing
+

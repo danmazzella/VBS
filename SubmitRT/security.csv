@@ -1,0 +1,30 @@
+SUB,CATEGORY
+Install,Firewall
+Rule Change,Firewall
+Troubleshoot,Firewall
+Upgrade,Firewall
+VPN,Firewall
+Analysis,Malware
+Clean-up,Malware
+Documentation,Other
+Branch Office,Project
+Firewall,Project
+Other,Project
+Proxy,Project
+System Hardening,Project
+Wireless,Project
+Create Custom Access,Proxy
+Log Request,Proxy
+Troubleshoot,Proxy
+URL Filtering,Proxy
+Create,SSL Certs
+Renew,SSL Certs
+Create Custom Access,SSL VPN
+Create User,SSL VPN
+Troubleshoot,SSL VPN
+Upgrade,SSL VPN
+Configuration,Wireless
+Install,Wireless
+Troubleshoot,Wireless
+Upgrade,Wireless
+

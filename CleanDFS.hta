@@ -1,0 +1,136 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="CleanDFS"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes"/>
+<HEAD>
+<TITLE>CleanDFS</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+html, body {
+  font-family: Times New Roman, "Courier New", sans-serif;
+  font-size: 13px;
+  color: #FFFFFF;
+}
+
+a.button {
+    background: transparent url('bg_button_b.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+
+<SCRIPT language=vbscript>
+	Sub cmdContinue_onclick()
+		if document.cleandfs.jc1dfs1.checked then
+			DeleteINI "\\jc1dfs1\users"
+		end if	
+		if document.cleandfs.jc1dfs2.checked then
+			DeleteINI "\\jc1dfs2\users" 
+		end if	
+		if document.cleandfs.tu1wsfls01.checked then
+			DeleteINI "\\tu1wsfls01\users$" 
+		end if	
+		if document.cleandfs.gw1filer1.checked then
+			DeleteINI "\\gw1filer1\users" 
+		end if	
+		if document.cleandfs.ln1filer1.checked then
+			DeleteINI "\\ln1filer1\users" 
+		end if	
+		if document.cleandfs.ch1filer1.checked then
+			DeleteINI "\\ch1filer1\users" 
+		end if			
+		
+		msgbox "This is Complete!"
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Clean My Documents Folders in I Drive"""
+	End Sub
+	
+	Sub DeleteINI(location)
+		Set FSO = Createobject("Scripting.FileSystemObject")
+		div1.innerhtml = div1.innerhtml & "Cleaning " & location & "<BR>"
+		Div1.doScroll("pageDown")
+		on error resume next
+		for each objFolder in FSO.GetFolder(location).SubFolders
+			If FSO.Fileexists(objFolder & "\desktop.ini") Then 
+				div1.innerhtml = div1.innerhtml & "Deleting in " & objFolder & "<BR>"
+				Div1.doScroll("pageDown")
+				FSO.DeleteFile objFolder & "\desktop.ini"
+			end if
+		next
+		div1.innerhtml = div1.innerhtml & "Done cleaning " & location & "<BR>"
+		Div1.doScroll("pageDown")
+	End sub
+	
+	Sub window_onload()
+		window.resizeTo 450, 610
+	End Sub
+</SCRIPT>
+
+</HEAD>
+<BODY style="background-color:black">
+    <FORM NAME="cleandfs">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Clean DFS1/2</H1>
+		<H1 style="text-align:center;font-family:arial;color:white;font-size:15px;">Fix "My Documents" folders in storages</H1>
+        <TABLE border=0>
+            <TR>
+                <TD><STRONG style="color:white">Clean Which Servers?</Strong></TD>
+                <TD>
+					<STRONG style="color:white">JC1DFS1</Strong>
+					<input type="checkbox" name="jc1dfs1" value="jc1dfs1"</><br />
+					<STRONG style="color:white">JC1DFS2</Strong>
+					<input type="checkbox" name="jc1dfs2" value="jc1dfs2"</><br />
+					<STRONG style="color:white">GW1FILER1</Strong>
+					<input type="checkbox" name="gw1filer1" value="gw1filer1"</><br />
+					<STRONG style="color:white">LN1FILER1</Strong>
+					<input type="checkbox" name="ln1filer1" value="ln1filer1"</><br />
+					<STRONG style="color:white">TU1WSFLS01</Strong>
+					<input type="checkbox" name="tu1wsfls01" value="tu1wsfls01"</><br />
+					<STRONG style="color:white">CH1FILER1</Strong>
+					<input type="checkbox" name="ch1filer1" value="ch1filer1"</><br />
+				</TD>
+            </TR>
+			<TR>
+                <TD>
+					<a class="button" id=cmdContinue href="#"><span>Submit</span></a>
+                </TD>
+            </TR>
+        </TABLE>
+		<TABLE>
+			<TR>
+				<TD>
+					<div id="div1" style="color:black; background-color:LightBlue; width: 400px; height: 300px; word-break:keep-all; overflow:auto">Output: </BR>
+				</TD>
+			</TR>
+		</TABLE>
+    </FORM>
+</BODY>
+</HTML>

@@ -1,0 +1,545 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="RTSubmit"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" ICON="submit.ico"/>
+<HEAD>
+<TITLE>RTSubmit</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+html, body {
+  font-family: Times New Roman, "Courier New", sans-serif;
+  font-size: 13px;
+  color: #FFFFFF;
+}
+
+a.button {
+    background: transparent url('bg_button_b.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub cmdContinue_onclick()
+		ScriptContinue = True
+		Set oShell = CreateObject("WScript.Shell")
+		Set objNTInfo = CreateObject("WinNTSystemInfo")
+		stCurrentFolder = "\\jc1dfs2\applications\desktop\createUser"
+
+		TktQueue = document.RTSubmit.TktQueue.value
+		TktQueue = TktQueue & "@knight.com"
+		TktStatus = document.RTSubmit.TktStatus.Value
+		TktTtle = document.RTSubmit.TktTtle.Value
+		TktTxt = document.RTSubmit.TktTxt.Value
+		TktWrked = document.RTSubmit.TktWrked.Value
+		TktOwner = objNTInfo.UserName
+				
+		if TktTtle = "" then
+			msgbox "Please enter a title for the ticket"
+			ScriptContinue = false
+		end if
+
+		if NOT TktEsmt = "" AND NOT isNumeric(TktEsmt) then
+			msgbox "TimeEstimate is not numeric"
+			ScriptContinue = false
+		end if
+		
+		if NOT TktWrked = "" AND NOT isNumeric(TktWrked) then
+			msgbox "TimeWorked is not numeric"
+			ScriptContinue = false
+		end if
+		
+		if NOT TktLeft = "" AND NOT isNumeric(TktLeft) then
+			msgbox "Time Left is not numeric"
+			ScriptContinue = false
+		end if 
+		
+				
+				
+		if ScriptContinue then
+			if right(tktOwner, 3) = "adm" then
+				NonADM = left(tktOwner, len(tktowner)-3)
+				tktOwner = NonADM
+			else
+				TktOwner = TktOwner
+			end if
+			
+			stOutput = "Status: " & TktStatus & vbCrLf
+			
+			if NOT document.RTSubmit.AssignUser.Value = "Nobody" then
+				stOutput = stOutput & "Owner: " & document.RTSubmit.AssignUser.Value & vbCrLf
+			end if
+			
+			stOutput = stOutput & "CustomField.{Business Unit}: " & document.RTSubmit.BusUnit.value & VbCrLf
+			stOutput = stOutput & "CustomField.{PCTeam Category}: " & document.RTSubmit.TktCat1.Value & vbCrLf			
+			stOutput = stOutput & "CustomField.{PCTeam Category Sub}: " & document.RTsubmit.tktcat2.value & VbCrLf
+			
+			if TktEsmt <> "" then
+				stOutput = stOutput & "TimeEstimated: " & TktEsmt & vbCrLf
+			end if
+			
+			if TktWrked <> "" then 
+				stOutput = stOutput & "TimeWorked: " & TktWrked & vbCrLf  
+			end if
+			
+			if TktLeft <> "" then
+				stOutput = stOutput & "TimeLeft: " & TktLeft & vbCrLf
+			end if
+			
+			if TktTxt <> "" then
+				stOutput = stOutput & VbCrLf & VbCrLf & TktTxt
+			end if
+			
+			if document.RTSubmit.TktCat2.value = "NetApp Quota Change" then		
+				emailto = "samail@knight.com"
+			else	
+				emailto = tktQueue
+			end if
+			
+			'bResult = oShell.Run(stCurrentFolder & "\postie -host:mailhost.knight-sec.com -from:" & TktOwner & "@knight.com -to:" & "dmazzella@knight.com" & " -s:""" & TktTtle & """ -msg:""" & stOutput & "", 0, True)		
+			bResult = oShell.Run(stCurrentFolder & "\postie -host:mailhost.knight-sec.com -from:" & TktOwner & "@knight.com -to:" & emailto & " -s:""" & TktTtle & """ -msg:""" & stOutput & "", 0, True)	
+		WriteLog TktQueue, TktStatus, document.RTSubmit.AssignUser.Value, TktTtle
+		ClearValues()
+		msgbox "RT ticket has been submitted"
+		end if
+	End Sub
+	
+	sub WriteLog(TktQueue, TktStatus, TktOwner, TktTtle)
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		Set objNTInfo = CreateObject("WinNTSystemInfo")
+		Set WriteStuff = FSO.OpenTextFile("\\jc1wsalt03\express\temp\DanLog\RTSubmit.csv", 8, True)
+		WriteStuff.Write(Date & ", " & Time & ", ")
+		WriteStuff.Write(objNTInfo.ComputerName & ", " & objNTInfo.UserName & ", ") 	
+		WriteStuff.Write(document.RTSubmit.TktQueue.value & ", " & TktStatus & ", " & TktOwner & ", " & TktTtle & VbCrLf)
+	end sub
+	
+	sub ClearValues()
+		SelectTktQueue
+		document.RTSubmit.TktStatus.SelectedIndex = 2
+		document.RTSubmit.TktCat1.SelectedIndex = 0
+		LoadInCats document.RTSubmit.TktCat1.Value
+		AssignToUser
+		LoadInBusUnit
+		LoadInPrntCat
+		document.RTSubmit.TktTtle.Value = ""
+		document.RTSubmit.TktTxt.Value = ""
+		document.RTSubmit.TktWrked.Value = "" 
+	end sub
+	
+	sub SelectTktQueue				
+		Set objFS   = CreateObject("Scripting.FileSystemObject")
+		Set objFile = objFS.OpenTextFile("\\jc1wsalt03\library\packages\dantools\submitrt\Members.txt")
+		strPhoneNumbers = objFile.ReadAll
+		objFile.Close
+		Set objNTInfo = CreateObject("WinNTSystemInfo")
+		
+		CurrentUser = objNTInfo.Username
+		if right(CurrentUser, 3) = "adm" then
+			NonADM = left(CurrentUser, len(CurrentUser)-3)
+			CurrentUser = NonADM
+		else
+			CurrentUser = CurrentUser
+		end if
+		
+		arrPhoneNumbers = Split(strPhoneNumbers,vbNewLine)
+		selected = false
+		For Each strNumber in arrPhoneNumbers
+			strTemp = split(strNumber,",")
+			if strTemp(0) = CurrentUser AND selected = false then
+				if strTemp(2) = "pc" then
+					document.RTSubmit.TktQueue.SelectedIndex = 0
+				elseif strTemp(2) = "nt" then
+					document.RTSubmit.TktQueue.SelectedIndex = 1
+				elseif strTemp(2) = "lnx" then
+					document.RTSubmit.TktQueue.SelectedIndex = 2
+				elseif strTemp(2) = "sc" then
+					document.RTSubmit.TktQueue.SelectedIndex = 3
+				elseif strTemp(2) = "dc" then
+					document.RTSubmit.TktQueue.SelectedIndex = 4
+				elseif strTemp(2) = "nw" then
+					document.RTSubmit.TktQueue.SelectedIndex = 5
+				elseif strTemp(2) = "vc" then
+					document.RTSubmit.TktQueue.SelectedIndex = 6
+				end if
+				selected = true
+			end if
+		Next
+	end sub
+	
+	Sub LoadDropDown
+		LoadInCats document.RTSubmit.TktCat1.Value
+    End Sub
+	
+	Sub LoadInCats(ParentCat)
+		ClearListBox "SubCategories"
+		
+		if document.RTSubmit.TktQueue.value = "pcteam-comments" then
+			TheCSV = "pcteam"
+		elseif document.RTSubmit.TktQueue.value = "linux-comments" then
+			TheCSV = "linux"
+		elseif document.RTSubmit.TktQueue.value = "windows-comments" then
+			TheCSV = "Windows"
+		elseif document.RTSubmit.TktQueue.value = "datacenter-comments" then
+			TheCSV = "DataCenter"
+		elseif document.RTSubmit.TktQueue.value = "security-comments" then
+			TheCSV = "Security"
+		elseif document.RTSubmit.TktQueue.value = "network-comments" then
+			TheCSV = "Network"
+		elseif document.RTSubmit.TktQueue.value = "voice-comments" then
+			TheCSV = "Voice"
+		end if
+		
+		Set objFS   = CreateObject("Scripting.FileSystemObject")
+		Set objFile = objFS.OpenTextFile("\\jc1wsalt03\library\packages\dantools\submitRT\" & TheCSV & ".csv")
+		strPhoneNumbers = objFile.ReadAll
+		objFile.Close
+		arrPhoneNumbers = Split(strPhoneNumbers,vbNewLine)
+		
+		For Each strNumber in arrPhoneNumbers
+			if instr(strNumber, ",") then
+				strTemp = split(strNumber,",")
+				if not strTemp(0) = "SUB" then
+					if strTemp(1) = ParentCat then
+						Set objOption = Document.createElement("OPTION")
+						objOption.Text = strTemp(0)
+						objOption.Value = strTemp(0)
+						document.RTSubmit.TktCat2.Add(objOption)
+					end if
+				end if
+			end if
+		Next	
+		if ParentCat = "Application" then
+			document.RTSubmit.TktCat2.SelectedIndex = 3
+		end if
+	End Sub
+	
+	Sub AssignToUser()
+		ClearListBox "AssignedUser"
+		Set objFS   = CreateObject("Scripting.FileSystemObject")
+		Set objFile = objFS.OpenTextFile("\\jc1wsalt03\library\packages\dantools\submitrt\Members.txt")
+		strPhoneNumbers = objFile.ReadAll
+		objFile.Close
+		arrPhoneNumbers = Split(strPhoneNumbers,vbNewLine)
+		Set objOption = Document.createElement("OPTION")
+		objOption.Text = "Nobody"
+		objOption.Value = "Nobody"
+		document.RTSubmit.AssignUser.Add(objOption)
+		For Each strNumber in arrPhoneNumbers
+			strTemp = split(strNumber,",")
+			if document.RTSubmit.TktQueue.SelectedIndex = 0 then
+				if strTemp(2) = "pc" then
+					Set objOption = Document.createElement("OPTION")
+					objOption.Text = strTemp(1)
+					objOption.Value = strTemp(0)
+					document.RTSubmit.AssignUser.Add(objOption)
+				end if
+			elseif document.RTSubmit.TktQueue.SelectedIndex = 1 then
+				if strTemp(2) = "nt" then
+					Set objOption = Document.createElement("OPTION")
+					objOption.Text = strTemp(1)
+					objOption.Value = strTemp(0)
+					document.RTSubmit.AssignUser.Add(objOption)
+				end if
+			elseif document.RTSubmit.TktQueue.SelectedIndex = 2 then
+				if strTemp(2) = "lnx" then
+					Set objOption = Document.createElement("OPTION")
+					objOption.Text = strTemp(1)
+					objOption.Value = strTemp(0)
+					document.RTSubmit.AssignUser.Add(objOption)
+				end if
+			elseif document.RTSubmit.TktQueue.SelectedIndex = 3 then
+				if strTemp(2) = "sc" then
+					Set objOption = Document.createElement("OPTION")
+					objOption.Text = strTemp(1)
+					objOption.Value = strTemp(0)
+					document.RTSubmit.AssignUser.Add(objOption)
+				end if
+			elseif document.RTSubmit.TktQueue.SelectedIndex = 4 then
+				if strTemp(2) = "dc" then
+					Set objOption = Document.createElement("OPTION")
+					objOption.Text = strTemp(1)
+					objOption.Value = strTemp(0)
+					document.RTSubmit.AssignUser.Add(objOption)
+				end if
+			elseif document.RTSubmit.TktQueue.SelectedIndex = 5 then
+				if strTemp(2) = "nw" then
+					Set objOption = Document.createElement("OPTION")
+					objOption.Text = strTemp(1)
+					objOption.Value = strTemp(0)
+					document.RTSubmit.AssignUser.Add(objOption)
+				end if
+			elseif document.RTSubmit.TktQueue.SelectedIndex = 6 then
+				if strTemp(2) = "vc" then
+					Set objOption = Document.createElement("OPTION")
+					objOption.Text = strTemp(1)
+					objOption.Value = strTemp(0)
+					document.RTSubmit.AssignUser.Add(objOption)
+				end if
+			end if
+		Next
+		
+		
+		Set objNTInfo = CreateObject("WinNTSystemInfo")
+		CurrentUser = objNTInfo.Username
+		if right(CurrentUser, 3) = "adm" then
+				NonADM = left(CurrentUser, len(CurrentUser)-3)
+				CurrentUser = NonADM
+			else
+				CurrentUser = CurrentUser
+		end if
+		on error resume next
+		document.RTSubmit.AssignUser.Value = CurrentUser
+		
+		if document.RtSubmit.AssignUser.selectedIndex = -1 then
+			document.RTSubmit.AssignUser.Value = "Nobody"
+		end if
+	End Sub
+	
+	Sub LoadInPrntCat()
+		AssignToUser
+		PreviousOne = ""	
+		clearlistbox "PrntCat"
+		
+		if document.RTSubmit.TktQueue.value = "pcteam-comments" then
+			TheCSV = "pcteam"
+		elseif document.RTSubmit.TktQueue.value = "linux-comments" then
+			TheCSV = "linux"
+		elseif document.RTSubmit.TktQueue.value = "windows-comments" then
+			TheCSV = "Windows"
+		elseif document.RTSubmit.TktQueue.value = "datacenter-comments" then
+			TheCSV = "DataCenter"
+		elseif document.RTSubmit.TktQueue.value = "security-comments" then
+			TheCSV = "Security"
+		elseif document.RTSubmit.TktQueue.value = "network-comments" then
+			TheCSV = "Network"
+		elseif document.RTSubmit.TktQueue.value = "voice-comments" then
+			TheCSV = "Voice"
+		end if
+		
+		Set objFS   = CreateObject("Scripting.FileSystemObject")
+		Set objFile = objFS.OpenTextFile("\\jc1wsalt03\library\packages\dantools\submitRT\" & TheCSV & ".csv")
+		strPhoneNumbers = objFile.ReadAll
+		objFile.Close
+		arrPhoneNumbers = Split(strPhoneNumbers,vbNewLine)
+		For Each strNumber in arrPhoneNumbers
+			if instr(strNumber, ",") then
+				strTemp = split(strNumber,",")
+				if NOT strTemp(1) = PreviousOne then
+					if not strTemp(1) = "CATEGORY" then
+						Set objOption = Document.createElement("OPTION")
+						objOption.Text = strTemp(1)
+						objOption.Value = strTemp(1)
+						document.RTSubmit.TktCat1.Add(objOption)
+					end if
+				end if
+				PreviousOne = strTemp(1)
+			end if
+		Next
+		LoadDropDown
+	End Sub
+	
+	Sub LoadInBusUnit()
+		clearlistbox "BusUnits"
+		Set objFS   = CreateObject("Scripting.FileSystemObject")
+		Set objFile = objFS.OpenTextFile("\\jc1wsalt03\library\packages\dantools\submitRT\BusinessUnit.txt")
+		strPhoneNumbers = objFile.ReadAll
+		objFile.Close
+		arrPhoneNumbers = Split(strPhoneNumbers,vbNewLine)
+		For Each strNumber in arrPhoneNumbers
+		   Set objOption = Document.createElement("OPTION")
+		   objOption.Text = strNumber
+		   objOption.Value = strNumber
+		   document.RTSubmit.BusUnit.Add(objOption)
+		Next
+		
+		Set objNTInfo = CreateObject("WinNTSystemInfo")
+		CurrentUser = objNTInfo.Username
+		if right(CurrentUser, 3) = "adm" then
+				NonADM = left(CurrentUser, len(CurrentUser)-3)
+				CurrentUser = NonADM
+		else
+				CurrentUser = CurrentUser
+		end if
+		
+		if currentUser = "jvettore" then
+			document.RTSubmit.BusUnit.Value = "KFI"
+		else
+			document.RTSubmit.BusUnit.Value = "PC/Desktop Support"
+		end if
+	End Sub
+	
+	Sub ClearListbox(WhichDropDown)
+		if whichdropdown = "SubCategories" then
+			For Each objOption in Document.RTSubmit.TktCat2.Options
+				objOption.RemoveNode
+			Next 
+		elseif whichdropdown = "AssignedUser" then
+			for each objOption in document.RTSubmit.AssignUser.options
+				objoption.removenode
+			next
+		elseif whichdropdown = "BusUnits" then
+			for each objOption in Document.rtsubmit.BusUnit.options
+				objoption.removenode
+			next
+		elseif whichdropdown = "PrntCat" then
+			for each objOption in Document.RTSubmit.TktCat1.Options
+				objOption.RemoveNode
+			next
+		elseif whichdropdown = "TheTktQueue" then
+			for each objOption in Document.RTSubmit.TktQueue.Options
+				objOption.RemoveNode
+			next
+		end if
+	End Sub
+	
+	Sub SubTickCat()
+		if document.RTSubmit.TktCat2.value = "NetApp Quota Change" then
+			username = inputbox("Enter Username")
+			iDrive = inputbox("Enter users I drive server")
+			AddStorage = inputbox("Enter desired storage space")
+			document.RTSubmit.TktStatus.value = "open"
+			document.RTSubmit.TktTtle.value = username & " " & iDrive & " " & AddStorage & " Quota"
+		end if
+	End Sub
+	
+	Sub ClearValues_onclick()
+		ClearValues()
+	End Sub
+	
+	Sub UpdateCat()
+		Set FileSystem = CreateObject("Scripting.FileSystemObject")
+		If FileSystem.FileExists("c:\temp\UpdateCategories.vbs") then
+			FileSystem.DeleteFile("c:\temp\UpdateCategories.vbs")
+		End If
+	
+		FileSystem.CopyFile "\\jc1wsalt03\library\packages\dantools\submitrt\UpdateCategories.vbs", "c:\temp\UpdateCategories.vbs"
+	
+		Dim oWS : set oWS = CreateObject("Wscript.Shell")
+		Dim sCmd
+		sCmd = "CSCRIPT C:\temp\UpdateCategories.vbs"
+		oWS.Run sCmd, 1, True
+	End Sub
+	
+	Sub window_onload()
+		window.resizeTo 520, 460
+		UpdateCat
+		AssignToUser
+		SelectTktQueue
+		LoadInPrntCat
+		LoadInBusUnit
+		LoadDropDown
+		document.RTSubmit.TktStatus.SelectedIndex = 2
+	End Sub
+</SCRIPT>
+
+</HEAD>
+<BODY style="background-color:black">
+    <FORM NAME="RTSubmit">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Submit RT ticket</H1>
+        <TABLE border=0>
+			<TR>
+                <TD><STRONG style="color:white">Ticket Queue</Strong></TD>
+                <TD>
+					<select id=TktQueue onChange=LoadInPrntCat>
+					<option value=pcteam-comments>PC Team</option>
+					<option value=windows-comments>Windows</option>
+					<option value=linux-comments>Linux</option>
+					<option value=security-comments>Security</option>
+					<option value=datacenter-comments>DataCenter</option>
+					<option value=network-comments>Network</option>
+					<option value=voice-comments>Voice</option>
+					</select>	
+				</TD>
+            </TR>
+			<TR>
+                <TD><STRONG style="color:white">Assigned User</Strong></TD>
+                <TD>
+					<select id=AssignUser onChange=LoadDropDown>
+					</select>	
+				</TD>
+            </TR>
+			<TR>
+                <TD><STRONG style="color:white">Ticket Status</Strong></TD>
+                <TD>
+					<select id=TktStatus>
+					<option value=new>New</option>
+					<option value=open>Open</option>
+					<option value=resolved>Resolved</option>
+					<option value=rejected>Rejected</option>					
+					<option value=stalled>Stalled</option>
+					</select>	
+				</TD>
+            </TR>
+
+			<TR>
+                <TD><STRONG style="color:white">Ticket Category</Strong></TD>
+                <TD>
+					<select id=TktCat1 onChange=LoadDropDown>
+					</select>	
+				</TD>
+            </TR>
+			<TR>
+                <TD><STRONG style="color:white">Ticket Sub Category</Strong></TD>
+                <TD>
+					<select id=TktCat2 onChange=SubTickCat>
+					</select>	
+				</TD>
+            </TR>
+			<TR>
+                <TD><STRONG style="color:white">Business Unit</Strong></TD>
+                <TD>
+					<select id=BusUnit>
+					</select>	
+				</TD>
+            </TR>
+            <TR>
+                <TD><STRONG style="color:white">Enter Ticket Title:</Strong></TD>
+                <TD><INPUT id=TktTtle name=TktTtle size=40></TD>
+            </TR>
+			
+            <TR>
+                <TD><STRONG style="color:white">Enter Ticket Text:</Strong></TD>
+                <TD><textarea id=TktTxt name=TktTxt rows=3 cols=40></textarea><p></TD>
+            </TR>
+			<TR>
+                <TD><STRONG style="color:white">Time Worked:</Strong></TD>
+                <TD><INPUT id=TktWrked name=TktWrked size=4></TD>
+            </TR>
+            <TR>
+                <TD> </TD>
+                <TD>
+					<a class="button" id=cmdContinue href="#"><span>Submit</span></a>
+					<a class="button" id=ClearValues href="#"><span>Reset Form</span></a>
+                </TD>
+            </TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

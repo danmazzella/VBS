@@ -1,0 +1,196 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="PingPC"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>PingPC</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub OpenCmp_onclick()
+		Dim SH
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "c:\temp\DanScripts\PingPC\ComputerNames.txt"
+		Set SH = Nothing 
+	end sub
+	
+		Dim SH 
+	Sub OpenTemp_onclick()
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\PingPC"
+		Set SH = Nothing 
+	end sub
+	
+	Sub cmdContinue_onclick()
+		Set WshShell = CreateObject("WScript.Shell")
+		
+		Const wbemFlagReturnImmediately = &h10
+		Const wbemFlagForwardOnly = &h20
+		
+		ReadTXT
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Check If PC Online"""
+		msgbox("Script Complete")
+	End Sub
+	
+	Sub PcOffline_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\PingPC\PcOffline.txt") then
+			SH.Run "C:\temp\DanScripts\PingPC\PcOffline.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+	
+	Sub PcOnline_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\PingPC\PcOnline.txt") then
+			SH.Run "C:\temp\DanScripts\PingPC\PcOnline.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+		
+	'=====
+	sub ReadTXT()
+		dim FSO, objTextFile
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set objTextFile = FSO.OpenTextFile("c:\temp\DanScripts\PingPC\computernames.txt")
+		if document.PingPC.singlePC.checked then
+			CheckComputer document.PingPC.CompName.Value
+		else
+			Do Until objTextFile.AtEndOfStream
+				CheckComputer objTextFile.Readline
+			Loop
+		end if
+	end sub
+	'=====
+	
+	
+	
+	sub CheckComputer(computerName)
+		dim strLine, msg, strComputer, FileSystem, WriteStuff, objPing, objStatus
+		msg = computerName
+		Div1.innerHTML = Div1.innerHTML  & msg
+		Div1.doScroll("pageDown")
+		
+		'Ping
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & msg & "'")  
+		
+		For Each objStatus in objPing  
+			If  IsNull(objStatus.ReplySize) Then  
+				Div1.innerHTML = Div1.innerHTML & " - Offline"
+				Div1.doScroll("pageDown")
+				Set FileSystem = CreateObject("Scripting.FileSystemObject")
+				Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\PingPC\pcOffline.txt", 8, True)
+				WriteStuff.WriteLine(msg)
+				WriteStuff.Close
+				SET WriteStuff = NOTHING
+				SET FileSystem = NOTHING     
+			else
+				Div1.innerHTML = Div1.innerHTML & " - Online"
+				Div1.doScroll("pageDown")
+				Set FileSystem = CreateObject("Scripting.FileSystemObject")
+				Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\PingPC\pcOnline.txt", 8, True)
+				WriteStuff.WriteLine(msg)
+				WriteStuff.Close
+				SET WriteStuff = NOTHING
+				SET FileSystem = NOTHING     
+			End If
+			Div1.innerHTML = Div1.innerHTML & "</BR>"
+			Div1.doScroll("pageDown")	
+		Next  
+	  
+		Set objPing=Nothing  
+		Set objStatus=Nothing  
+	end sub
+	
+	Sub window_onload()
+		window.resizeTo 600, 800
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\PingPC") then
+			FSO.CreateFolder("C:\temp\DanScripts\PingPC")
+		end if
+		if not fso.fileexists("c:\temp\DanScripts\PingPC\ComputerNames.txt") then
+			Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\PingPC\ComputerNames.txt", 8, True)
+		end if
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+	 <FORM NAME="PingPC">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Check if Computer on Network</H1>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">This requires a list of computers in C:\Temp\ComputerNames</H6>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">and will output to C:\Temp\DanScripts\PingPC</H6>
+		
+		<input type="checkbox" name="singlePC" onclick="document.PingPC.CompName.disabled = document.PingPC.CompName.checked"><STRONG style="color:white">Single Computer?</STRONG>
+		<STRONG style="color:white">Computer Name:</STRONG><input type="text" name="CompName" disabled="disabled">
+		
+        <TABLE border=0>
+            <TR></TR>
+			<TR>
+                <TD>
+					 <a class="button" id=cmdContinue href="#"><span>Run Script</span></a>
+					<a class="button" id=OpenCmp href="#"><span>Open ComputerNames</span></a>
+					<a class="button" id=OpenTemp href="#"><span>PingPC Folder</span></a>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 400px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+			<TR>
+                <TD>
+					 <a class="button" id=PcOffline href="#"><span>PC's Offline</span></a>
+					 <a class="button" id=PcOnline href="#"><span>PC's Online</span></a>
+				</TD>
+			</TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

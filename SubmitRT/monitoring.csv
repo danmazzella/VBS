@@ -1,0 +1,14 @@
+SUB,CATEGORY
+Add New Group,Hostinfo
+Add New Location,Hostinfo
+Add New Vendor/Hardware Type,Hostinfo
+Bugfix,Logwatchd Agent
+Deploy Latest Version,Logwatchd Agent
+New Feature,Logwatchd Agent
+Add/Modify Automations,Netcool
+Add/Modify Rules,Netcool
+Install/Upgrade,Netcool
+Bugfix,Nitemond Agent
+Deploy New Version,Nitemond Agent
+New Feature,Nitemond Agent
+

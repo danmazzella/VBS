@@ -1,0 +1,36 @@
+SUB,CATEGORY
+Backup-Restore,MS SQL Server
+Client Installation,MS SQL Server
+Corruption,MS SQL Server
+DB Administration,MS SQL Server
+Database Migration,MS SQL Server
+Space Administration,MS SQL Server
+Upgrade,MS SQL Server
+Backup-Restore,MySQL
+Client Installation,MySQL
+Corruption,MySQL
+DB Administration,MySQL
+Database Migration,MySQL
+Space Administration,MySQL
+Upgrade,MySQL
+Backup-Restore,Oracle
+Client Installation,Oracle
+Corruption,Oracle
+DB Administration,Oracle
+DB Build,Oracle
+DG Restore,Oracle
+Database Migration,Oracle
+Heterogenous Components,Oracle
+Instance Administration,Oracle
+Patching,Oracle
+Space Administration,Oracle
+Troubleshooting,Oracle
+Upgrade,Oracle
+Backup-Restore,Sybase
+Client Installation,Sybase
+Corruption,Sybase
+DB Administration,Sybase
+Database Migration,Sybase
+Space Administration,Sybase
+Upgrade,Sybase
+

@@ -1,0 +1,49 @@
+SUB,CATEGORY
+Add,Connections
+New,Connections
+Relable,Connections
+Troubleshooting,Connections
+relocate,Connections
+repair,Connections
+Decommission,Equipment
+New,Equipment
+Relocation,Equipment
+Rename,Equipment
+Repurpose,Equipment
+Upgarde,Equipment
+Decommission,Remote Collo
+New build,Remote Collo
+On site support,Remote Collo
+Remote Hands,Remote Collo
+Rename,Remote Collo
+Repair,Remote Collo
+Upgrade,Remote Collo
+Decommission,Remote offices
+New build,Remote offices
+On site support,Remote offices
+Rename,Remote offices
+Repair,Remote offices
+Upgrade,Remote offices
+Decommission,Server
+Drive replaced,Server
+New build,Server
+Relocation,Server
+Rename,Server
+Repair,Server
+Repurpose,Server
+Upgarde,Server
+replace,Server
+Decommission,Storage
+Deploy- new,Storage
+Drive replaced,Storage
+Rename,Storage
+Repair,Storage
+Repurpose,Storage
+Upgrade,Storage
+relocate,Storage
+Decommission,Vendors
+Deploy- new,Vendors
+Rename,Vendors
+Repair,Vendors
+Upgrade,Vendors
+

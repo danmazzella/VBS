@@ -1,0 +1,1206 @@
+<head>
+<title>&nbsp;&nbsp;Creation of KNIGHT Active Directory user accounts</title>
+<HTA:APPLICATION 
+     APPLICATIONNAME="useraddAD"
+		 BORDER="thin"
+     SCROLL="yes"
+     SINGLEINSTANCE="yes"
+     WINDOWSTATE="normal"
+	 ICON="createAD.ico"
+ />
+<style>
+BODY
+{
+   background-color: #000080;
+   font-family: Helvetica;
+   font-size: 8pt;
+   margin-top: 20px;
+}
+.intable { 
+   font-family: Helvetica;
+   font-size: 8pt;
+	 margin-left:3px;
+	 margin-right:3px;
+}
+.infield { 
+   font-family: Helvetica;
+   font-size: 8pt;
+	 margin-left:3px;
+	 margin-right:3px;
+	 color: #000080;
+}
+
+.bigger_button
+{
+   font-family: Helvetica;
+   font-size: 8pt;
+   width: 100px;
+	 margin-top: 20px;
+	 margin-bottom: 10px;
+}
+
+.bigger_button_narrow
+{
+   font-family: Helvetica;
+   font-size: 8pt;
+   width: 100px;
+}
+
+.avg_button
+{
+   font-family: Helvetica;
+   font-size: 8pt;
+   width: 30px;
+	 margin-top: 10px;
+	 margin-bottom: 10px;
+}
+
+</style>
+
+<!--<script language="VBScript">
+'On Error Resume Next
+'********************************************************************************************
+Sub GetAccountProperties(byRef oUsr, Byval stUserServ, Byval bInter)
+	stOut = "User has been created with the following attributes:" & vbCrlf & vbCrlf & _
+	"Login ID" & vbTab & oUsr.cn & vbCrlf & _
+	"First Name" & vbTab & oUsr.givenName & vbCrlf & _
+	"Last Name" & vbTab & oUsr.sn & vbCrlf & _
+	"Display Name" & vbTab & oUsr.displayName & vbCrlf & _
+	"User Description" & vbTab & oUsr.description & vbCrlf & _
+	"User OU" & vbTab & Mid(oUsr.parent, 8) & vbCrlf
+	If StrComp(stUserServ, "user", vbTextcompare) = 0 Then
+		stOut = stOut & "Home Drive" & vbTab & oUsr.homeDrive & vbCrlf & _
+		"Home Directory" & vbTab & oUsr.homeDirectory & vbCrlf & _
+		"Login Script" & vbTab & oUsr.scriptPath & vbCrlf
+	End If
+	stOut = stOut & "Password set to Knight123"
+	If bInter Then
+		MsgBox stOut, vbOkonly, stTitle
+	Else
+		Wscript.Echo stOut
+	End If
+End Sub
+'********************************************************************************************
+</script>
+-->
+<script language="vbscript">
+Set oRootDSE = GetObject("LDAP://rootDSE")
+stRootNC = CStr(oRootDSE.Get("defaultNamingContext"))
+stLSGrpsOU = "OU=Login Script Groups,OU=Groups," & stRootNC
+Set dicCommonGroups = CreateObject("Scripting.Dictionary")
+dicCommonGroups.Add "pcmenu_CommonApps", "LDAP://CN=pcmenu_CommonApps," & stLSGrpsOU
+dicCommonGroups.Add "pcmenu_CleanUp", "LDAP://CN=pcmenu_CleanUp," & stLSGrpsOU
+dicCommonGroups.Add "pcmenu_JWS1616", "LDAP://CN=pcmenu_JWS1616," & stLSGrpsOU
+dicCommonGroups.Add "Domain Users", "LDAP://CN=Domain Users,OU=Administrative Groups,OU=Groups," & stRootNC
+'dicCommonGroups.Add "pcmenu_Exceed", "LDAP://CN=pcmenu_Exceed," & stLSGrpsOU
+'dicCommonGroups.Add "pcmenu_Remedy", "LDAP://CN=pcmenu_Remedy," & stLSGrpsOU
+
+'********************************************************************
+'* Window_Onload
+'********************************************************************
+Sub Window_Onload
+   self.Focus()
+   self.ResizeTo 700,800
+	 btn_create.Disabled = True
+	 btn_clear.Disabled = True
+	 rad_user.Checked = True
+	 rad_backoffice.Checked = True
+	 first_name.Focus()
+	 Set oNet = CreateObject("WScript.Network")
+	 stNBDomain = oNet.UserDomain
+	 nbdomain_name.innerHTML = stNBDomain & "\"
+	 Set oRootDSE = GetObject("LDAP://rootDSE")
+	 stRootNC = CStr(oRootDSE.Get("defaultNamingContext"))
+	 stDomain = "LDAP://" & stRootNC
+	 stDNSdomain = getDNSdomainName(stDomain)
+	 addomain_name.innerHTML = "@" & stDNSdomain
+	 usr_ldap_cont.Value = ""
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Create New User"""	 
+	 clearFields
+End Sub
+
+Sub clearFields	
+		first_name.Value = ""
+		last_name.Value = ""
+		middle_in.Value = ""
+		nb_login_id.Value = ""
+		ad_login_id.Value = ""
+		disp_name.Value = ""
+		desc.Value = ""
+		home_dir.Value = ""
+		log_script.Value = ""
+		btn_create.Disabled = True
+		rad_user.Checked = True
+		rad_backoffice.Checked = True
+'		rad_service.Checked = False
+		rad_backoffice.Disabled = False
+'		rad_trader.Checked = False
+		rad_trader.Disabled = False
+		home_dir.Disabled = False
+		log_script.Disabled = False
+		desc.Disabled = False
+	  Set oRootDSE = GetObject("LDAP://rootDSE")
+	  stRootNC = CStr(oRootDSE.Get("defaultNamingContext"))
+		usr_dom_root.Value = stRootNC
+		confirm_area.innerHTML = ""
+		grp_pattern.Value = ""
+		grp_avail.innerHTML = "<textarea class=""intable"" cols=""40"" rows=""5"" DISABLED>No group name pattern entered</textarea>"
+		Call initSelect(grp_selected)
+		Call addCommonGroups(grp_selected)
+'		MsgBox "Clear routine: " & usr_ldap_path.Value
+End Sub
+
+Sub closeTool
+		self.close()
+End Sub
+
+Sub findGroups()
+		stSelGrp = "<select class=""infield"" id=""grp_avail_found"" size=""5"" MULTIPLE>"
+		Const ADS_SCOPE_SUBTREE = 2
+		Set oRootDSE = GetObject("LDAP://rootDSE")
+		stDomRoot = oRootDSE.Get("defaultNamingContext")
+		stDomain = "LDAP://" & stDomRoot
+		Set oConnection = CreateObject("ADODB.Connection")
+		Set oCommand =   CreateObject("ADODB.Command")
+		oConnection.Provider = "ADsDSOObject"
+		oConnection.Open "Active Directory Provider"
+		Set oCommand.ActiveConnection = oConnection
+		oCommand.Properties("Page Size") = 1000
+		oCommand.Properties("Searchscope") = ADS_SCOPE_SUBTREE
+		oCommand.CommandText = _
+			"SELECT name, ADSPath FROM '" & stDomain & "' WHERE objectCategory='group' AND name='*" & _
+			grp_pattern.Value & "*' ORDER BY name"
+		Set oRecordSet = oCommand.Execute
+
+'		On Error Resume Next
+		If oRecordSet.RecordCount > 0 Then
+			 oRecordSet.MoveFirst
+			 stEmpty = ""
+			 Do Until oRecordSet.EOF
+			 		stOption = CStr(oRecordSet.Fields("name").Value)
+			 		stSelGrp = stSelGrp & "<option value=""" & oRecordSet.Fields("ADSPath").Value & """>" & stOption
+						'			 oRecordSet.Fields("name").Value & stEmpty & " |"									 
+			'		Set oNewOpt = document.createElement("OPTION")
+			'		oNewOpt.Text = oRecordSet.Fields("name").Value
+			'		grp_avail.options.Add(oNewOpt)
+					oRecordSet.MoveNext
+			 Loop
+			 stEmpty = ""
+			 For i = 0 To 65
+			 		 stEmpty = stEmpty & "&nbsp;"
+			 Next
+			 stSelGrp = stSelGrp & "<option value="""">" & stEmpty
+			 stSelGrp = stSelGrp & "</select>"
+		Else
+			 stSelGrp = "<textarea class=""intable"" cols=""40"" rows=""5"" DISABLED>No groups found</textarea>"
+		'	 Set oNewOpt = document.createElement("OPTION")
+		'	 oNewOpt.Text = "No groups found"
+		End If
+		grp_avail.innerHTML = stSelGrp
+		Set oRecordSet = Nothing
+		Set oCommand = Nothing
+		Set oConnection = Nothing
+End Sub
+
+Sub addRemGroups(byVal oFrom, byVal oTo)
+		For Each oOpt In oFrom.Options
+				bNotThere = True
+				If oOpt.Selected Then
+					  For Each oToOpt In oTo.Options
+								If StrComp(oToOpt.Text, oOpt.Text, vbTextcompare) = 0 Then bNotThere = False
+						Next
+						If bNotThere Then
+					 		 Set oNewOpt = document.createElement("OPTION")
+							 oNewOpt.Text = oOpt.Text
+							 oNewOpt.Value = oOpt.Value
+							 oTo.Options.Add(oNewOpt)
+							 oFrom.Options.Remove(oOpt.Index)
+							 Set oNewOpt = Nothing
+						Else
+							 oFrom.Options.Remove(oOpt.Index)
+						End If
+				End If
+		Next
+End Sub
+
+Sub initSelect(byRef oSelect)
+		For Each oOpt In oSelect.Options
+				oSelect.Options.Remove(oOpt.Index)
+		Next
+End Sub
+
+Sub addEmptyOption(byRef oSelect)
+		stEmpty = ""
+		For i = 0 To 65
+				stEmpty = stEmpty & " "
+		Next
+		Set oNewOpt = document.createElement("OPTION")
+		oNewOpt.Text = stEmpty
+		oNewOpt.Value = ""
+		oSelect.Options.Add(oNewOpt)
+End Sub
+
+Sub addCommonGroups(byRef oSelect)
+		For Each stGrp In dicCommonGroups.Keys
+				Set oNewOpt = document.createElement("OPTION")
+				oNewOpt.Text = stGrp
+				oNewOpt.Value = dicCommonGroups(stGrp)
+				oSelect.Options.Add(oNewOpt)
+		Next
+End Sub
+
+Sub addUserToGroups(byRef oUser)
+	For Each optGrp In grp_selected.Options
+		stGrp = "" 
+		stGrp = optGrp.Value
+		if instr(stGrp, "Domain Users") then
+			' skip empty
+		elseif stGrp = "" Then
+			 ' skip empty
+		Else
+				Set oGrp = GetObject(stGrp)
+				oGrp.Add(oUser.ADSPath)
+				oGrp.SetInfo
+				Set oGrp = Nothing
+		End If
+	Next
+End Sub
+		
+Function replInvChars(stIn)
+		Set reLN = New RegExp
+		With reLN
+				 .IgnoreCase = True
+				 .Global = True
+				 .Pattern = "[\W]*"
+		End With
+		replInvChars = reLN.Replace(stIn, "")
+End Function
+
+Sub fillLoginIDs
+		stTitle = "Creation of KNIGHT Active Directory user accounts"
+		stFname = replInvChars(ChangeCaseToTitle(first_name.Value))
+		stLname = ChangeCaseToTitle(last_name.Value)
+		stInitial = replInvChars(UCase(Left(middle_in.Value, 1)))
+		first_name.Value = stFname
+		last_name.Value = stLname
+		middle_in.Value = stInitial
+		If middle_in.Value = "" Then
+			  disp_name.Value = stLname & ", " & stFname
+		Else
+				disp_name.Value = stLname & ", " & stFname & " " & stInitial
+		End If
+		stLogID = LCase(Left(first_name.Value, 1) & Left(replInvChars(last_name.Value), 7)) 
+		btn_create.Disabled = False
+		btn_clear.Disabled = False
+		nb_login_id.Value = stLogID
+		ad_login_id.Value = nb_login_id.Value
+		stRootNC = usr_dom_root.Value
+		If rad_user.Checked Then
+			 home_dir.Disabled = False
+			 log_script.Disabled = False
+			 desc.Disabled = False
+			 
+			 UserLocation = user_location.value
+			
+			 stSrvN = ""
+			 DollarSign = ""
+			 
+			 if UserLocation = "JC" then 
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "JC1DFS1"
+				 Else
+						 stSrvN = "JC1DFS2"
+				 End If
+			 elseif UserLocation = "AT" then
+				stSrvN = "at1wsfls01\users$\remote"
+			 elseif UserLocation = "BS" then
+				stSrvN = "bs1wsfls01\users$\remote"
+			 elseif UserLocation = "CH" then
+				stSrvN = "ch1wsfls01\users$\remote"
+			 elseif UserLocation = "CO" then
+				stSrvN = "co1wsfls01\users$"
+			 elseif UserLocation = "DA" then
+				stSrvN = "da1wsfls01\users$\remote"
+			 elseif UserLocation = "GC" then
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "JC1DFS1"
+				 Else
+						 stSrvN = "JC1DFS2"
+				 End If
+			 elseif UserLocation = "GW" then
+				stSrvN = "gw1filer1"
+			 elseif UserLocation = "HK" then
+				stSrvN = "hk1filer1"
+			 elseif UserLocation = "LN" then
+				stSrvN = "ln1dfs1"
+			 elseif UserLocation = "NY" then
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "JC1DFS1"
+				 Else
+						 stSrvN = "JC1DFS2"
+				 End If
+			 elseif UserLocation = "PR" then
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "JC1DFS1"
+				 Else
+						 stSrvN = "JC1DFS2"
+				 End If
+			 elseif UserLocation = "SC" then
+				stSrvN = "sc1wsfls01"
+				DollarSign = "$"
+			 elseif UserLocation = "SF" then
+				stSrvN = "sf3wsfls01\users$\remote"
+			 elseif UserLocation = "TU" then
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "tu1wsfls01\users$"
+				 Else
+						 stSrvN = "tu1wsfls01\users2$"
+				 End If
+			 elseif UserLocation = "MV" then
+				stSrvN = "MV1WSFLS01\users1$"
+			 elseif UserLocation = "PH" then
+				stSrvN = "ph1wsfls01\users1$"
+			 end if
+			 
+			 For Each oOpt In grp_selected.Options
+			 		 If InStr(1, oOpt.Text, "config users", vbTextCompare) Then
+					 		grp_selected.Options.Remove(oOpt.Index)
+					 End If
+			 Next
+			 
+			 
+			 if stSrvN = "JC1DFS1" OR stSrvN = "JC1DFS2" then
+				 Set oNewOpt = document.createElement("OPTION")
+				 oNewOpt.Text = stSrvN & " Config Users"
+				 oNewOpt.Value = "LDAP://CN=" & stSrvN & " Config Users,OU=Groups," & stRootNC
+				 grp_selected.Options.Add(oNewOpt)
+				 Set oNewOpt = Nothing	
+			end if
+			 
+			 home_srv.Value = stSrvN
+			 home_dir.Value = "\\" & stSrvN & "\" & stLogID & DollarSign
+			 log_script.Value = "KnightLoginScript.vbs"
+			 If rad_backoffice.Checked Then
+			 		usr_ldap_cont.Value = "LDAP://OU=Backoffice,OU=User Accounts," & stRootNC
+			 ElseIf rad_trader.Checked Then
+			 		usr_ldap_cont.Value = "LDAP://OU=Traders,OU=User Accounts," & stRootNC
+			 Else
+			 		MsgBox "Please, choose user Category - Backoffice or Trader", stTitle, vbOKOnly
+			 End If
+		Else
+			 usr_ldap_cont.Value = "LDAP://OU=Service Accounts," & stRootNC
+			 desc.Value = "Application User"
+			 desc.Disabled = True
+			 home_dir.Disabled = True
+			 log_script.Disabled = True
+			 home_dir.Value = ""
+			 log_script.Value = ""
+			 For Each oOpt In grp_selected.Options
+			 		 grp_selected.Options.Remove(oOpt.Index)
+			 Next
+		End If
+'		MsgBox "fillLoginIDs routine: " & usr_ldap_path.Value
+End Sub
+
+Function ChangeCaseToTitle(stInput)
+	Dim stOutput, oReg, oMatches, oMatch
+
+	Set oReg = New RegExp
+	oReg.IgnoreCase = False
+	oReg.Global = True
+	oReg.Pattern = "(\S+\s*)"
+
+	stOutput = ""
+	Set oMatches = oReg.Execute(stInput)
+	For Each oMatch in oMatches
+		stOutput = stOutput & Ucase(Left(oMatch, 1)) & LCase(Right(oMatch, Len(oMatch) - 1))
+	Next
+	ChangeCaseToTitle = stOutput
+End Function
+
+Function getDNSdomainName(Byval stADSPath)
+	getDNSdomainName = ""
+	Set reFindDCs = New RegExp
+	With reFindDCs
+		.IgnoreCase = True
+		.Global = True
+		.Pattern = "dc\=([^,]+)"
+	End With
+	If reFindDCs.Test(stADSPath) Then
+		Set oFoundMatches = reFindDCs.Execute(stADSPath)
+		For Each oSM In oFoundMatches
+			If getDNSdomainName = "" Then
+				getDNSdomainName = oSM.SubMatches(0)
+			Else
+				getDNSdomainName = getDNSdomainName & "." & oSM.SubMatches(0)
+			End If
+		Next
+	End If
+End Function
+
+Sub handleUserType(rad_type)
+		If rad_type.Checked Then
+			 Select Case rad_type.Value
+			 			Case "User"
+								rad_backoffice.Disabled = False
+								rad_trader.Disabled = False
+								Call initSelect(grp_selected)
+								Call addCommonGroups(grp_selected)
+						Case "Service"
+								rad_backoffice.Disabled = True
+								rad_trader.Disabled = True
+								Call initSelect(grp_selected)
+								Call addEmptyOption(grp_selected)
+						Case "Backoffice"
+						Case "Traders"
+				End Select
+		End If
+'		MsgBox "rad_user " & rad_user.Checked & vbCrLf & "rad_sevice " & rad_service.Checked & vbCrLf & _
+'					 "rad_trader " & rad_trader.Checked & vbCrLf & "rad_backoffice " & rad_backoffice.Checked
+'		MsgBox "stUsrNC " & stUsrNC
+End Sub
+
+Sub correctUserData(id_type)
+		Select Case id_type
+			 Case "nb_login_id"
+			 		ad_login_id.Value = LCase(nb_login_id.Value)
+			 Case "ad_login_id"
+			 		nb_login_id.Value = LCase(ad_login_id.Value)
+		End Select
+		stRootNC = usr_dom_root.Value
+		If rad_user.Checked Then
+			 home_dir.Disabled = False
+			 log_script.Disabled = False
+			 desc.Disabled = False 
+			 
+			 UserLocation = user_location.value
+			
+			 stSrvN = ""
+			 DollarSign = ""
+			 
+			 if UserLocation = "JC" then 
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "JC1DFS1"
+				 Else
+						 stSrvN = "JC1DFS2"
+				 End If
+			 elseif UserLocation = "AT" then
+				stSrvN = "at1wsfls01\users$\remote"
+			 elseif UserLocation = "BS" then
+				stSrvN = "bs1wsfls01\users$\remote"
+			 elseif UserLocation = "CH" then
+				stSrvN = "ch1wsfls01\users$\remote"
+			 elseif UserLocation = "CO" then
+				stSrvN = "co1wsfls01\users$"
+			 elseif UserLocation = "DA" then
+				stSrvN = "da1wsfls01\users$\remote"
+			 elseif UserLocation = "GC" then
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "JC1DFS1"
+				 Else
+						 stSrvN = "JC1DFS2"
+				 End If
+			 elseif UserLocation = "GW" then
+				stSrvN = "gw1filer1"
+			 elseif UserLocation = "HK" then
+				stSrvN = "hk1filer1"
+			 elseif UserLocation = "LN" then
+				stSrvN = "ln1dfs1"
+			 elseif UserLocation = "NY" then
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "JC1DFS1"
+				 Else
+						 stSrvN = "JC1DFS2"
+				 End If
+			 elseif UserLocation = "PR" then
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "JC1DFS1"
+				 Else
+						 stSrvN = "JC1DFS2"
+				 End If
+			 elseif UserLocation = "SC" then
+				stSrvN = "sc1wsfls01"
+				DollarSign = "$"
+			 elseif UserLocation = "SF" then
+				stSrvN = "sf3wsfls01\users$\remote"
+			 elseif UserLocation = "TU" then
+				 If StrComp(Left(stLogID, 1), "m", vbTextcompare) <= 0 Then
+						 stSrvN = "tu1wsfls01\users$"
+				 Else
+						 stSrvN = "tu1wsfls01\users2$"
+				 End If
+			 elseif UserLocation = "MV" then
+				stSrvN = "MV1WSFLS01\users1$"
+			 elseif UserLocation = "PH" then
+				stSrvN = "ph1wsfls01\users1$"
+			 end if
+
+			 home_srv.Value = stSrvN
+			 If rad_backoffice.Checked Then
+			 		usr_ldap_cont.Value = "LDAP://OU=Backoffice,OU=User Accounts," & stRootNC
+			 ElseIf rad_trader.Checked Then
+			 		usr_ldap_cont.Value = "LDAP://OU=Traders,OU=User Accounts," & stRootNC
+			 Else
+			 		MsgBox "Please, choose user Category - Backoffice or Trader", stTitle, vbOKOnly
+			 End If
+		Else
+			 usr_ldap_cont.Value = "LDAP://OU=Service Accounts," & stRootNC
+			 desc.Value = "Application User"
+			 desc.Disabled = True
+			 home_dir.Disabled = True
+			 log_script.Disabled = True
+			 home_dir.Value = ""
+			 log_script.Value = ""
+		End If
+		'home_dir.Value = "\\" & home_srv.Value & "\" & nb_login_id.Value &  DollarSign
+End Sub
+
+Sub testUser
+		correctUserData("ad_login_id")
+		If checkExistingUser(nb_login_id.Value) Then
+			 'Just leave displayed message and do nothing else
+		Else
+				stTestArea = ""
+				stTestArea = "<table align=""center"" border=""0"" bgcolor=""#c0c0c0"" id=""table_2"" cellpadding=""2"" class=""intable"">" & _
+				"<tr><td align=""center"" colspan=""2""><b>User will be created with the following attributes</b></td></tr>" & _
+				"<tr><td>User First Name</td><td>" & first_name.Value & "</td></tr>" & _
+				"<tr><td>User Initial</td><td>" & middle_in.Value & "</td></tr>" & _
+				"<tr><td>User Last Name</td><td>" & last_name.Value & "</td></tr>" & _
+				"<tr><td>User logon name (Pre-Windows 2000)</td><td>" & nbdomain_name.innerHTML & nb_login_id.Value & "</td></tr>" & _
+				"<tr><td>User logon name</td><td>" & ad_login_id.Value & addomain_name.innerHTML & "</td></tr>" & _
+				"<tr><td>User Display Name</td><td>" & disp_name.Value & "</td></tr>" & _
+				"<tr><td>User Description</td><td>" & desc.Value & "</td></tr>"
+				If rad_user.Checked Then
+					 UserLocation = user_location.value
+					 OfficeLocation = ""
+				 
+					 if UserLocation = "JC" then 
+						 OfficeLocation = "Jersey City"
+					 elseif UserLocation = "AT" then
+						OfficeLocation = "Atlanta"
+					 elseif UserLocation = "BS" then
+						OfficeLocation = "Boston"
+					 elseif UserLocation = "CH" then
+						OfficeLocation = "Chicago"
+					 elseif UserLocation = "DA" then
+						OfficeLocation = "Dallas"
+					 elseif UserLocation = "GC" then
+						 OfficeLocation = "Garden City"
+					 elseif UserLocation = "GW" then
+						OfficeLocation = "Greenwich"
+					 elseif UserLocation = "HK" then
+						OfficeLocation = "Hong Kong"
+					 elseif UserLocation = "LN" then
+						OfficeLocation = "London"
+					 elseif UserLocation = "NY" then
+						 OfficeLocation = "New York"
+					 elseif UserLocation = "PR" then
+						 OfficeLocation = "Purchase"
+					 elseif UserLocation = "SC" then
+						OfficeLocation = "Santa Clara"
+					 elseif UserLocation = "SF" then
+						OfficeLocation = "San Francisco"
+					 elseif UserLocation = "TU" then
+						 OfficeLocation = "Tulsa"
+					 elseif UserLocation = "CO" then
+						OfficeLocation = "Colorado"
+					 elseif UserLocation = "MV" then
+						OfficeLocation = "Melville"
+					 elseif UserLocation = "PH" then
+						OfficeLocation = "Philly"
+					 end if
+					 
+					 stTestArea = stTestArea & "<tr><td>User Home Directory</td><td>" & home_dir.Value & "</td></tr>" & _
+					 "<tr><td>User Login Script</td><td>" & log_script.Value & "</td></tr>" & _
+					 "<tr><td>Office Location:</td><td>" & OfficeLocation & "</td></tr>"
+				End If
+				stTestArea = stTestArea & "<tr><td>Groups to be added:</td><td>"
+				For Each oOpt In grp_selected.Options
+						stTestArea = stTestArea & "&nbsp;&nbsp;" & oOpt.Text & "<br>"
+				Next
+				stTestArea = stTestArea & "</td></tr>"
+				stTestArea = stTestArea & "<tr><td>User Container</td><td>" & Mid(usr_ldap_cont.Value, 8) & "</td></tr>" & _
+									 "</table>"
+				confirm_area.innerHTML = stTestArea
+		End If
+End Sub
+		
+Sub createUser
+		correctUserData("ad_login_id")
+		'Wscript.Echo "Default domain naming context: " & stDomain
+		Const ForReading = 1, ForWriting = 2, ForAppending = 8
+		Const ADS_UF_SCRIPT = &H00000001
+		Const ADS_UF_ACCOUNTDISABLE = &H00000002
+		Const ADS_UF_HOMEDIR_REQUIRED = &H00000008
+		Const ADS_UF_LOCKOUT = &H00000010
+		Const ADS_UF_PASSWD_NOTREQD = &H00000020
+		Const ADS_UF_PASSWD_CANT_CHANGE = &H00000040
+		Const ADS_UF_ENCRYPTED_TEXT_PASSWORD_ALLOWED = &H00000080
+		Const ADS_UF_TEMP_DUPLICATE_ACCOUNT = &H00000100
+		Const ADS_UF_NORMAL_ACCOUNT = &H00000200
+		Const ADS_UF_INTERDOMAIN_TRUST_ACCOUNT = &H00000800
+		Const ADS_UF_WORKSTATION_TRUST_ACCOUNT = &H00001000
+		Const ADS_UF_SERVER_TRUST_ACCOUNT = &H00002000
+		Const ADS_UF_DONT_EXPIRE_PASSWD = &H00010000
+		Const ADS_UF_MNS_LOGON_ACCOUNT = &H00020000
+		Const ADS_UF_SMARTCARD_REQUIRED = &H00040000
+		Const ADS_UF_TRUSTED_FOR_DELEGATION = &H00080000
+		Const ADS_UF_NOT_DELEGATED = &H00100000
+		Const ADS_UF_USE_DES_KEY_ONLY = &H00200000
+		Const ADS_UF_DONT_REQUIRE_PREAUTH = &H00400000
+		Const ADS_UF_PASSWORD_EXPIRED = &H00800000
+		Const ADS_UF_TRUSTED_TO_AUTHENTICATE_FOR_DELEGATION = &H01000000
+		Const ADS_SCOPE_SUBTREE = 2
+		Const ADS_PROPERTY_DELETE = 4
+		Const ADS_PROPERTY_APPEND = 3
+		Const ADS_PROPERTY_UPDATE = 2
+		Const stTitle = "Creation of KNIGHT Active Directory user accounts"
+		On Error Resume Next
+		Err.Clear
+		Set oFso = CreateObject("Scripting.FileSystemObject")
+		Set oShell = CreateObject("WScript.Shell")
+		stCurrentFolder = "\\jc1dfs2\applications\desktop\createUser"
+		If Err Then handleErrors "Getting current directory", Err.Description
+		Err.Clear
+		Set oUserOU = GetObject(usr_ldap_cont.Value)
+		If Err Then handleErrors "Getting user OU", Err.Description
+		Err.Clear
+		If checkExistingUser(nb_login_id.Value) Then
+			 'Just leave displayed message and do nothing else
+		Else
+				Set oUser = oUserOU.Create("user", "cn=" & nb_login_id.Value)
+				If Err Then handleErrors "Creating user account", Err.Description
+				Err.Clear
+				oUser.samAccountName = nb_login_id.Value
+				oUser.SetInfo
+				oUser.description = desc.Value
+
+				 UserLocation = user_location.value
+				 OfficeLocation = ""
+			 
+				 if UserLocation = "JC" then 
+					 OfficeLocation = "Jersey City"
+				 elseif UserLocation = "AT" then
+					OfficeLocation = "Atlanta"
+				 elseif UserLocation = "BS" then
+					OfficeLocation = "Boston"
+				 elseif UserLocation = "CH" then
+					OfficeLocation = "Chicago"
+				 elseif UserLocation = "DA" then
+					OfficeLocation = "Dallas"
+				 elseif UserLocation = "GC" then
+					 OfficeLocation = "Garden City"
+				 elseif UserLocation = "GW" then
+					OfficeLocation = "Greenwich"
+				 elseif UserLocation = "HK" then
+					OfficeLocation = "Hong Kong"
+				 elseif UserLocation = "LN" then
+					OfficeLocation = "London"
+				 elseif UserLocation = "NY" then
+					 OfficeLocation = "New York"
+				 elseif UserLocation = "PR" then
+					 OfficeLocation = "Purchase"
+				 elseif UserLocation = "SC" then
+					OfficeLocation = "Santa Clara"
+				 elseif UserLocation = "SF" then
+					OfficeLocation = "San Francisco"
+				 elseif UserLocation = "TU" then
+					 OfficeLocation = "Tulsa"
+				 elseif UserLocation = "CO" then
+					OfficeLocation = "Colorado"
+				 elseif UserLocation = "MV" then
+					OfficeLocation = "Melville"
+				 elseif UserLocation = "PH" then
+					OfficeLocation = "Philly"
+				 end if
+				
+				oUser.physicalDeliveryOfficeName = OfficeLocation
+				oUser.givenName = first_name.Value
+				oUser.sn = last_name.Value
+				If Not (middle_in.Value = "") Then oUser.initials = middle_in.Value
+				oUser.Put "userPrincipalName", ad_login_id.Value & addomain_name.innerHTML
+				oUser.SetPassword "Knight123"
+				oUser.SetInfo
+				iUAC = oUser.Get("userAccountControl")
+				oUser.displayName = disp_name.Value
+				If rad_user.Checked Then
+					 oUser.pwdLastSet = 0
+					 oUser.Put "userAccountControl", iUAC Xor ADS_UF_ACCOUNTDISABLE
+					 oUser.homeDrive = "I:"
+					 oUser.homeDirectory = home_dir.Value
+					 oUser.scriptPath = log_script.Value
+					 oUser.SetInfo
+					 call createUserFolders(oFso, stCurrentFolder, home_srv.Value, nb_login_id.Value, nbdomain_name.innerHTML)
+				Else
+					 oUser.Put "userAccountControl", iUAC Or ADS_UF_DONT_EXPIRE_PASSWD Xor ADS_UF_ACCOUNTDISABLE
+					 oUser.SetInfo
+				End If
+				oUser.SetInfo
+				addUserToGroups oUser
+				oUser.SetInfo
+				confirmUser oUser
+				notifyUserCreated oUser
+		End If
+End Sub
+
+Function checkExistingUser(byVal stSAMaccount)
+		Set reFindParent = New RegExp
+		With reFindParent
+			.IgnoreCase = True
+			.Global = False
+			.Pattern = "cn\=[^\,]+\,"
+		End With
+		Const ADS_SCOPE_SUBTREE = 2
+		checkExistingUser = False
+		Set oRootDSE = GetObject("LDAP://rootDSE")
+		stDomRoot = oRootDSE.Get("defaultNamingContext")
+		stDomain = "LDAP://" & stDomRoot
+		Set oConnection = CreateObject("ADODB.Connection")
+		Set oCommand =   CreateObject("ADODB.Command")
+		oConnection.Provider = "ADsDSOObject"
+		oConnection.Open "Active Directory Provider"
+		Set oCommand.ActiveConnection = oConnection
+		oCommand.Properties("Page Size") = 1000
+		oCommand.Properties("Searchscope") = ADS_SCOPE_SUBTREE
+		oCommand.CommandText = _
+												 "SELECT displayName, description, ADSPath FROM '" & stDomain & "' WHERE samAccountName='" & stSAMaccount & "'"
+		Set oRecordSet = oCommand.Execute
+		If oRecordSet.RecordCount > 0 Then
+			 checkExistingUser = True
+			 oRecordSet.MoveFirst
+			 Do Until oRecordSet.EOF
+			 		stUsrPath = oRecordSet.Fields("ADSPath").Value
+					stParentOU = Mid(reFindParent.Replace(stUsrPath, ""), 8)
+					If IsNull(oRecordSet.Fields("displayName").Value) Then
+						 stDispName = stSAMaccount
+					Else
+						 stDispName = oRecordSet.Fields("displayName").Value
+					End If
+					If IsNull(oRecordSet.Fields("description").Value) Then
+						 stDesc = ""
+					Else
+						 stDesc = Join(oRecordSet.Fields("description").Value)
+					End If
+					oRecordSet.MoveNext
+			 Loop
+			 stErrType = "account creation"
+			 stErrDesc = "User <b>" & stDispName & "</b>, " & stDesc & "<br> <b>already exists</b> in the following OU:<br><br>" & stParentOU
+	'		 MsgBox "Account name: " & stSAMaccount & " Number of records: " & oRecordSet.RecordCount & vbCrLf & _
+	'		 				stErrType & vbCrLf & stErrDesc
+			 Call handleErrors(stErrType, stErrDesc)
+		End If
+End Function
+
+Sub handleErrors(byVal errType, byVal errDesc)
+		stErrArea = "<span class=""intable"" style=""font-weight:bold; color:red;"">Error occured during " & errType & "!</span><p>" & _
+				"<span class=""intable"">Error description: " & errDesc & "</span></p><p>&nbsp;</p>"
+		confirm_area.innerHTML = "<br>" & stErrArea
+End Sub
+
+Sub createUserFolders(byRef oFso, ByVal stCurrentFolder, Byval stSrv, Byval stUsrName, Byval stNBDomain)
+	UserLocation = user_location.value
+			
+	 stSrvN = ""
+	 
+	 if UserLocation = "JC" then 
+		 If StrComp(Left(stUsrName, 1), "m", vbTextcompare) <= 0 Then
+				 stSrvN = "JC1DFS1\users"
+		 Else
+				 stSrvN = "JC1DFS2\users"
+		 End If
+	 elseif UserLocation = "AT" then
+		stSrvN = "at1wsfls01\users$\remote"
+	 elseif UserLocation = "BS" then
+		stSrvN = "bs1wsfls01\users$\remote"
+	 elseif UserLocation = "CH" then
+		stSrvN = "ch1wsfls01\users$\remote"
+	 elseif UserLocation = "DA" then
+		stSrvN = "da1wsfls01\users$\remote"
+	 elseif UserLocation = "GC" then
+		 If StrComp(Left(stUsrName, 1), "m", vbTextcompare) <= 0 Then
+				 stSrvN = "JC1DFS1\users"
+		 Else
+				 stSrvN = "JC1DFS2\users"
+		 End If
+	 elseif UserLocation = "GW" then
+		stSrvN = "gw1filer1\users"
+	 elseif UserLocation = "HK" then
+		stSrvN = "hk1filer1\users"
+	 elseif UserLocation = "LN" then
+		stSrvN = "ln1dfs1\users"
+	 elseif UserLocation = "NY" then
+		 If StrComp(Left(stUsrName, 1), "m", vbTextcompare) <= 0 Then
+				 stSrvN = "JC1DFS1\users"
+		 Else
+				 stSrvN = "JC1DFS2\users"
+		 End If
+	 elseif UserLocation = "PR" then
+		 If StrComp(Left(stUsrName, 1), "m", vbTextcompare) <= 0 Then
+				 stSrvN = "JC1DFS1\users"
+		 Else
+				 stSrvN = "JC1DFS2\users"
+		 End If
+	 elseif UserLocation = "SC" then
+		stSrvN = "sc1wsfls01\users$"
+	 elseif UserLocation = "SF" then
+		stSrvN = "sf3wsfls01\users$\remote"
+	 elseif UserLocation = "TU" then
+		 If StrComp(Left(stUsrName, 1), "m", vbTextcompare) <= 0 Then
+				 stSrvN = "tu1wsfls01\users$"
+		 Else
+				 stSrvN = "tu1wsfls01\users2$"
+		 End If
+	 elseif UserLocation = "CO" then
+		stSrvN = "co1wsfls01\users$"
+	 elseif UserLocation = "MV" then
+		stSrvN = "mv1wsfls01\users1$"
+	 elseif UserLocation = "PH" then
+		stSrvN = "ph1wsfls01\users1$"
+	 end if
+	 
+	stUsrFolder = "\\" & stSrvN & "\" & stUsrName
+	
+	If StrComp(Left(stUsrName, 1), "m", vbTextcompare) <= 0 Then
+		UserConfig = "JC1DFS1"
+	Else
+		UserConfig = "JC1DFS2"
+	End If
+	stUsrConfig = "\\" & UserConfig & "\configuration\" & stUsrName
+	
+	Set oShell = CreateObject("WScript.Shell")
+'	stCurrentFolder = oShell.CurrentDirectory
+	
+	If oFso.FolderExists(stUsrFolder) Then
+		'Just leave it for now
+	Else
+		Set oUsrFolder = oFso.CreateFolder(stUsrFolder)
+		
+		Set oUsrFolder = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig)
+		Set oUsrConfig = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig & "\apps")
+		Set oUsrConfig = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig & "\apps\brass")
+		Set oUsrConfig = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig & "\apps\mws")
+		Set oUsrConfig = Nothing
+		Set oUsrConfig = oFso.CreateFolder(stUsrConfig & "\apps\qms")
+		Set oUsrConfig = Nothing
+	End If
+	
+	userExists = false
+	do while UserExists = false
+		Set objDomainUser = GetObject("WinNT://Knight/" & stUsrName & ",user")
+		if NOT ( err ) then 
+			UserExists = true
+			oShell.Run stCurrentFolder & "\cacls.exe " & stUsrFolder & " /E /C /G knight\" & stUsrName & ":F", 0, true
+		end if
+	loop	
+End Sub
+
+Sub confirmUser(ByRef oUsr)
+		stConfArea = ""
+		If middle_in.Value = "" Then
+			 stMI = ""
+		Else
+			 stMI = oUsr.initials
+		End If
+		stConfArea = "<table align=""center"" border=""0"" bgcolor=""#c0c0c0"" id=""table_2"" cellpadding=""1"" class=""intable"">" & _
+		"<tr><td align=""center"" colspan=""2""><span class=""intable"" style=""color:green;font-weight:bold;"">User account created successfully with the following attributes</span></td></tr>" & _
+		"<tr><td>User First Name</td><td>" & oUsr.givenName & "</td></tr>" & _
+		"<tr><td>User Initial</td><td>" & stMI & "</td></tr>" & _
+		"<tr><td>User Last Name</td><td>" & oUsr.sn & "</td></tr>" & _
+		"<tr><td>User logon name (Pre-Windows 2000)</td><td>" & nbdomain_name.innerHTML & oUsr.samAccountName & "</td></tr>" & _
+		"<tr><td>User logon name</td><td>" & oUsr.Get("userPrincipalName") & "</td></tr>" & _
+		"<tr><td>User Display Name</td><td>" & oUsr.displayName & "</td></tr>" & _
+		"<tr><td>User Description</td><td>" & oUsr.description & "</td></tr>"
+		If rad_user.Checked Then
+				stConfArea = stConfArea & "<tr><td>User Home Directory</td><td>" & oUsr.homeDirectory & "</td></tr>" & _
+				"<tr><td>User Login Script</td><td>" & oUsr.scriptPath & "</td></tr>" & _
+				"<tr><td>Password Expiration</td><td>Change on Next Logon</td></tr>"
+		Else
+				stConfArea = stConfArea & "<tr><td>Password Expiration</td><td>Never Expire</td></tr>"
+		End If
+		stConfArea = stConfArea & _
+		"<tr><td>Password Set To</td><td>Knight123</td></tr>" & _
+		"<tr><td>Added to Groups</td><td>"
+		For Each oGrpAdd In grp_selected.Options
+				stConfArea = stConfArea & oGrpAdd.Text & "<br>"
+		Next
+		stConfArea = stConfArea & "</td></tr>" & _
+		"<tr><td>User Container</td><td>" & Mid(oUsr.parent, 8) & "</td></tr>" & _
+		"</table>"
+		confirm_area.innerHTML = stConfArea
+End Sub
+
+Sub notifyUserCreated(ByRef oUsr)
+		On Error Resume Next
+		Const ADS_UF_DONT_EXPIRE_PASSWD = &H00010000
+		Set oShell = CreateObject("WScript.Shell")
+		Set oNet = CreateObject("WScript.Network")
+		Set reFindCN = New RegExp
+		With reFindCN
+			.IgnoreCase = True
+			.Global = False
+			.Pattern = "cn\=([^\,]+)\,"
+		End With
+		stUsrCreator = oNet.UserName
+		stUsrComp = oNet.ComputerName
+		stCurrentFolder = "\\jc1dfs2\applications\desktop\CreateUser"
+		stOutput = ""
+		Err.Clear
+		stUfn = oUsr.givenName
+		If Err Then
+			 stUfn = "Not specified"
+			 Err.Clear
+		End If
+		stUmi = oUsr.initials
+		If Err Then
+			 stUmi = "Not specified"
+			 Err.Clear
+		End If
+		stUln = oUsr.sn
+		If Err Then
+			 stUln = "Not specified"
+			 Err.Clear
+		End If
+		stUid = oUsr.samAccountName
+		If Err Then
+			 stUid = "Not specified"
+			 Err.Clear
+		End If
+		stUdn = oUsr.displayName
+		If Err Then
+			 stUdn = "Not specified"
+			 Err.Clear
+		End If
+		stUdc = oUsr.description
+		If Err Then
+			 stUdc = "Not specified"
+			 Err.Clear
+		End If
+		stUhd = oUsr.homeDirectory
+		If Err Then
+			 stUhd = "Not specified"
+			 Err.Clear
+		End If
+		stUls = oUsr.scriptPath
+		If Err Then
+			 stUls = "Not specified"
+			 Err.Clear
+		End If
+		stUou = Mid(oUsr.parent, 8)
+		iUAC = oUser.Get("userAccountControl")
+		stUpe = "Password expires according to policy"
+		If iUAC AND ADS_UF_DONT_EXPIRE_PASSWD Then stUpe = "Password never expires"
+		stUpl = oUsr.PasswordLastChanged
+		If Err Then
+			 stUpl = "User must change password on next logon"
+			 Err.Clear
+		End If
+		stGrps = ""
+		For Each stGrp In oUsr.GetEx("memberOf")
+				Set oGrps = reFindCN.Execute(stGrp)
+				stGrps = stGrps & "Member of " & oGrps(0).SubMatches(0) & " group" & vbCrlf
+		Next
+'		If StrComp(stUpl, "0", vbBinaryCompare) = 0 Then stUpl = "User must change password on next logon"
+	'	Wscript.Echo changeBadChars(stUhd)
+		stOutput = FormatDateTime(Now(), 0) & vbCrlf & _
+			"User " & stUsrCreator & " from PC " & stUsrComp & " created the following account" & vbCrlf & vbCrlf
+		stOutput = stOutput & "User First Name" & vbTab & stUfn & vbCrLf & _
+						 "User Initial" & vbTab & stUmi & vbCrLf & _
+						 "User Last Name" & vbTab & stUln & vbCrLf & _
+						 "User logon name" & vbTab & stUid & vbCrLf & _
+						 "User Display Name" & vbTab & stUdn & vbCrLf & _
+						 "User Description" & vbTab & stUdc & vbCrLf & _
+						 "User Home Directory" & vbTab & changeBadChars(stUhd) & vbCrlf & _
+						 "User Login Script" & vbTab & stUls & vbCrLf & _
+						 "Password Expiration" & vbTab & stUpe & vbCrLf & _
+						 "Password Change" & vbTab & stUpl & vbCrLf & _
+						 stGrps & _
+						 "User Container" & vbTab & stUou & vbCrLf
+		bResult = oShell.Run(stCurrentFolder & "\postie -host:mailhost.knight-sec.com -from:AD_Knight@donotreply.com -to:PC_Services@knight.com,NTADMINS@knight.com -s:""New Active Directory User account created"" -msg:""" & stOutput & "", 0, True)
+
+End Sub
+
+Function changeBadChars(Byval stIn)
+	Set reFindChars = New RegExp
+	With reFindChars
+		.IgnoreCase = True
+		.Global = True
+		.Pattern = "[\\]"
+	End With
+	changeBadChars = reFindChars.Replace(stIn, "\\")
+End Function
+
+</script>
+</head>
+
+<body>
+
+<table summary="" align="center" border="0" bgcolor="#c0c0c0" id="table_1" cellpadding="1">
+<tr>
+		<td rowspan="2"><span class="intable" id="user_types_head" style="margin-left:25px;">Choose User type:</span>
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="user_type_head">User</span><br>
+				<input type="radio" class="intable" id="rad_user" name="rad_user_serv" value="User" onclick="handleUserType(rad_user)" />
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="user_cat_head">Backoffice</span><br>
+				<input type="radio" class="intable" id="rad_backoffice" name="rad_back_trad" value="Backoffice" onclick="handleUserType(rad_backoffice)" />
+		    <img alt="Company logo" src="\\jc1dfs2\applications\desktop\CreateUser\KnightLogo.JPG" style="position:absolute; vertical-align:middle; left:490px;" />
+		</td>
+</tr>
+<tr>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="user_type2_head">Service</span><br>
+				<input type="radio" class="intable" id="rad_service" name="rad_user_serv" value="Service" onclick="handleUserType(rad_service)" />
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="user_cat2_head">Trader</span><br>
+				<input type="radio" class="intable" id="rad_trader" name="rad_back_trad" value="Traders" onclick="handleUserType(rad_trader)" />
+		</td>
+</tr>
+<tr>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="first_name_head">First Name</span>
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="initial_head">Initials</span>
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="last_name_head">Last Name</span>
+		</td>
+		<td align="justify" valign="bottom">
+				<span class="intable" id="location_head">Location</span>
+		</td>
+</tr>
+<tr>
+		<td>
+				<input type="text" id="first_name" size="40" maxlength="45" value="" class="infield" onkeyup="fillLoginIDs" />
+		</td>
+		<td>
+				<input type="text" id="middle_in" size="7" maxlength="15" class="infield" onkeyup="fillLoginIDs" />
+		</td>
+		<td>
+				<input type="text" id="last_name" size="40" maxlength="45" value="" class="infield" onkeyup="fillLoginIDs"  />
+		</td>
+		<td>
+			<select id="user_location" onkeyup="fillLoginIDs" onclick="fillLoginIDs">
+			<option value=JC>JC</option> 
+			<option value=AT>AT</option>
+			<option value=BS>BS</option>
+			<option value=CH>CH</option>
+			<option value=CO>CO</option>
+			<option value=DA>DA</option>
+			<option value=GC>GC</option>
+			<option value=GW>GW</option>
+			<option value=HK>HK</option>
+			<option value=LN>LN</option>
+			<option value=MV>MV</option>
+			<option value=NY>NY</option>
+			<option value=PH>PH</option>
+			<option value=PR>PR</option>
+			<option value=SC>SC</option>
+			<option value=SF>SF</option>
+			<option value=TU>TU</option>
+			</select>	
+		</td>
+</tr>
+<tr>
+		<td valign="bottom">
+				<span class="intable" id="nb_login_id_head">User logon name (Pre-Windows 2000)</span>
+		</td>
+		<td colspan="2" valign="bottom">
+				<span class="intable" id="ad_login_id_head">User logon name</span>
+		</td>
+</tr>
+<tr>
+		<td>
+				<span class="intable" id="nbdomain_name"></span><input type="text" id="nb_login_id" size="21" maxlength="45" value="" class="infield" onkeyup="correctUserData('nb_login_id')" />
+		</td>
+		<td colspan="2">
+				<input type="text" id="ad_login_id" size="21" maxlength="45" value="" class="infield" onkeyup="correctUserData('ad_login_id')" /><span class="intable" id="addomain_name"></span>
+		</td>
+</tr>
+<tr>
+		<td valign="bottom">
+				<span class="intable" id="disp_name_head">Display Name</span>
+		</td>
+		<td colspan="2" valign="bottom">
+				<span class="intable" id="desc_head">Description</span>
+		</td>
+</tr>
+<tr>
+		<td>
+				<input type="text" id="disp_name" size="40" maxlength="255" value="" class="infield" />
+		</td>
+		<td colspan="2">
+				<input type="text" id="desc" size="55" maxlength="255" value="" class="infield" />
+		</td>
+</tr>
+<tr>
+		<td colspan="2" valign="bottom">
+				<span class="intable" id="home_dir_head">Home Folder Location</span>
+		</td>
+		<td valign="bottom">
+				<span class="intable" id="log_script_head">Logon Script</span>
+		</td>
+</tr>
+<tr>
+		<td colspan="2">
+				<span class="intable">Connect </span><span class="infield" id="home_letter" style="font-size:10pt; font-weight:bold;">I:</span><span class="intable"> to </span><input type="text" id="home_dir" size="38" maxlength="255" value="" class="infield" />
+		</td>
+		<td>
+				<input type="text" id="log_script" size="40" maxlength="255" value="" class="infield" />
+		</td>
+</tr>
+<tr>
+		<td colspan="3" valign="bottom">
+				<span class="intable">Please, type in (partial) group name:</span>
+		</td>
+</tr>
+<tr>
+		<td colspan="3" valign="middle">
+				<input type="text" class="infield" id="grp_pattern" size="23" maxlength="255" onkeyup="findGroups" />
+				<input type="button" class="bigger_button_narrow" value="Find Groups" onclick="findGroups" />
+		</td>
+</tr>
+<tr>
+		<td>
+				<div id="grp_avail">
+				</div>
+		</td>
+		<td align="center">
+				<input type="button" class="avg_button" value="&gt;&gt;" onclick="addRemGroups grp_avail_found, grp_selected" /><br>
+				<input type="button" class="avg_button" value="&lt;&lt;" onclick="addRemGroups grp_selected, grp_avail_found" />
+		</td>
+		<td>
+				<select id="grp_selected" class="infield" size="5" MULTIPLE>
+				</select>
+		</td>
+</tr>
+<tr>
+		<td colspan="2">
+				<input type="button" id="btn_clear" align="left" value="Reset Fields" class="bigger_button" style="margin-left:5px;" onclick="clearFields">
+				<input type="button" id="btn_create" align="right" value="Create Account" class="bigger_button" style="margin-left:5px;" onclick="createUser">
+		</td>
+		<td align="right">
+				<input type="button" id="btn_test" value="Test" class="bigger_button" style="margin-right:5px;" onclick="testUser">
+				<input type="button" id="btn_close" value="Close" class="bigger_button" style="margin-right:5px;" onclick="closeTool">
+				<input type="hidden" id="usr_dom_root" />
+				<input type="hidden" id="usr_ldap_cont" />
+				<input type="hidden" id="home_srv" />
+		</td>
+</tr>
+<tr>
+		<td colspan="3" align="center"><div align="center" id="confirm_area"></div>
+		</td>
+</tr>
+</table>
+
+
+</body>

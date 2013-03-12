@@ -1,0 +1,76 @@
+Allocations
+Batch
+Brass
+Brass BA
+Brass Ops
+Brass QA
+Client Connectivity
+Compliance
+Database Admin
+Datacenter Admin
+Datacomm
+Direct Edge ECN
+ESG
+ETG
+ETG Europe
+ETG Market Risk
+Enterprise Messenging
+Enterprise Systems
+FUTR Operations
+Facilities
+GSS Jersey City
+GSS London
+GTS
+Great Plains Support
+Hong Kong Support
+HotSpot
+HotSpot Development
+IOI
+IOM
+Information Security
+Insight
+KD
+KD Algo
+KD Algo Quant
+KD Algo Support
+KD Allocations
+KD Analytics
+KD Market Data
+KD Market Data - Client
+KD Market Data - Support
+KD Opt Algo
+KD Orders
+KD Portfolios
+KD SPT
+KD Valuation
+KFI
+Knight Global
+Knight Global Allocations
+Knight Global Infrastructture
+Listed Derivatives Desk
+London Support
+London Support Bust MSG
+MDS
+MDS KEM
+MDS Latency
+MarketWatch
+Modex
+Monitoring
+NYSE DMM
+Network Support
+PC/Desktop Support
+PMON
+Portal
+Reporting
+SDQMS
+SDQMS Listed
+SMARS
+SMARS Asia
+STATARBOPS
+Security
+TOMOPS
+UNIX/Linux Server Support
+Urban Financial
+ValuBond
+Voice Comms
+Windows Server Support
