@@ -1,0 +1,166 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="CopyJavaFiles"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>CopyJavaFiles</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>	
+	Sub OpenTemp_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\CopyJavaFiles"
+		Set SH = Nothing 
+	end sub
+	
+	Sub cmdContinue_onclick()
+		intialize
+	End Sub
+
+	public exists, dexist, wrongSize
+	
+	sub intialize()
+		Dim fso, folder, files, sFolder
+		exists = "0"
+		dexist = "0"
+		wrongSize = "0"
+		Set fso = CreateObject("Scripting.FileSystemObject")
+
+		strComputer = document.CopyJavaFiles.CompName.value
+		Div1.innerHTML = Div1.innerHTML  & strComputer
+		Div1.doScroll("pageDown")
+
+		sfolder = "\\jc1wsalt03\library\Packages\Sun\Java\1.6.0.20\justfiles\java\jre1620"
+		strDirectory = "\\" & strComputer & "\C$\Program Files\Java"
+
+
+		'Get Folder and Files from Input
+		Set folder = fso.GetFolder(sFolder)
+		Set files = folder.Files
+		subfolder sfolder, strDirectory, counter
+		MSGBox(exists & " already existed and " & dexist & " did not exist " & wrongSize & " were the wrong size")
+		msgbox("Script Complete")
+	end sub
+
+	sub subfolder(strSource, strDestination, counter)
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		'Connect to the current directory in strSource. 
+		Set objDir = FSO.GetFolder(strSource) 
+
+		'If destination folder doesn't exist, create it. 
+		If Not FSO.FolderExists(strDestination) Then 
+			FSO.CreateFolder(strDestination) 
+		End If 
+
+		'If current folder doesn't exist under destination folder, create it. 
+		If Not FSO.FolderExists(strDestination & "\" & objDir.Name) Then 
+			FSO.CreateFolder(strDestination & "\" & objDir.Name) 
+		End If 
+
+		For Each objFiles In FSO.GetFolder(strSource).Files 
+			counter = counter + 1
+			FileThere objFiles, strDestination & "\" & objDir.Name
+		Next
+		For Each objFolder In FSO.GetFolder(strSource).SubFolders 
+				subfolder objFolder.Path, strDestination & "\" & objDir.Name, counter
+		Next 
+	end sub
+
+	sub FileThere(filefName, strDirectory)
+		Set fso = CreateObject("Scripting.FileSystemObject")
+		IF FSO.FileExists(strDirectory & "\" & FSO.GetFileName(filefName)) Then
+			Set objFile = FSO.GetFile(strDirectory & "\" & FSO.GetFileName(filefName))
+			if filefName.Size = objFile.Size THEN
+				Div1.innerHTML = Div1.innerHTML  & "Exists: " & FSO.GetFileName(filefName)
+				Div1.doScroll("pageDown")
+				exists = exists + 1
+			ELSEIF filefName.Size <> objFile.Size THEN
+				Div1.innerHTML = Div1.innerHTML  &  "Wrong File Size: " & FSO.GetFileName(filefName)
+				Div1.doScroll("pageDown")
+				FSO.DeleteFile strDirectory & "\" & FSO.GetFileName(filefName)
+				FSO.CopyFile filefName, strDirectory & "\" & jre1620
+				wrongSize = wrongSize + 1
+			end if
+		ELSEIF NOT FSO.FileExists(strDirectory & "\" & FSO.GetFileName(filefName)) THEN
+			Div1.innerHTML = Div1.innerHTML  & FSO.GetFileName(filefName)
+			Div1.doScroll("pageDown")
+			FSO.CopyFile filefName, strDirectory & "\" & jre1620
+			dexist = dexist + 1
+		END IF
+		Div1.innerHTML = Div1.innerHTML  & "</BR>"
+		Div1.doScroll("pageDown")
+	end sub
+
+	Sub window_onload()
+		window.resizeTo 600, 800
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\CopyJavaFiles") then
+			FSO.CreateFolder("C:\temp\DanScripts\CopyJavaFiles")
+		end if
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+	 <FORM NAME="CopyJavaFiles">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Copy missing/corrupt Java 1.6.20 Files</H1>
+		
+		<STRONG style="color:white">Computer Name:</STRONG><input type="text" name="CompName">
+					
+        <TABLE border=0>
+            <TR></TR>
+			<TR>
+                <TD>
+					<a class="button" id=cmdContinue href="#"><span>Run Script</span></a>
+					<a class="button" id=OpenTemp href="#"><span>CopyJavaFiles Folder</span></a>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 400px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

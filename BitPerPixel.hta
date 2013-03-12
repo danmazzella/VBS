@@ -1,0 +1,212 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="BitPerPixel"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>BitPerPixel</TITLE>
+
+<SCRIPT language=vbscript>
+	Sub OpenCmp_onclick()
+		Dim SH
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "c:\temp\DanScripts\BitPerPixel\computernames.txt"
+		Set SH = Nothing 
+	end sub
+	
+	Sub OpenTemp_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\BitPerPixel"
+		Set SH = Nothing 
+	end sub
+	
+	Sub cmdContinue_onclick()
+		Set WshShell = CreateObject("WScript.Shell")
+		
+		Const wbemFlagReturnImmediately = &h10
+		Const wbemFlagForwardOnly = &h20
+		
+		ReadTXT
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Check List of Computers for Monitor Bit Per Pixel"""		
+		msgbox("Script Complete")
+	End Sub
+	
+	Sub PcOffline_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\bitperpixel\PcOffline.txt") then
+			SH.Run "C:\temp\DanScripts\BitPerPixel\PcOffline.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+	
+	Sub IncorrectBit_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\bitperpixel\incorrectBit.txt") then
+			SH.Run "C:\temp\DanScripts\BitPerPixel\incorrectBit.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+	
+	Sub ErrorComp_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\bitperpixel\Error.txt") then
+			SH.Run "C:\temp\DanScripts\BitPerPixel\Error.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+	
+	'=====
+	sub ReadTXT()
+		dim FSO, objTextFile
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set objTextFile = FSO.OpenTextFile("c:\temp\DanScripts\BitPerPixel\computernames.txt")
+		if document.BitPerPixel.singlePC.checked then
+			main document.BitPerPixel.CompName.Value
+		else
+			Do Until objTextFile.AtEndOfStream
+				main objTextFile.Readline
+			Loop
+		end if
+	end sub
+	 '=====
+		
+	sub main(computerName)
+		dim strComputer, objPing, objStatus, FSO, WriteStuff, objWMIService, colItems
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		strComputer = computerName
+		
+		Div1.innerHTML = Div1.innerHTML  & strComputer
+		Div1.doScroll("pageDown")
+		
+		'Ping
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}").ExecQuery("select Replysize from Win32_PingStatus where address = '" & strComputer & "'")  
+		For Each objStatus in objPing  
+			If  IsNull(objStatus.ReplySize) Then
+				Div1.innerHTML = Div1.innerHTML & " - Offline"
+				Div1.doScroll("pageDown")
+				Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\BitPerPixel\PcOffline.txt", 8, True)
+				WriteStuff.WriteLine(strComputer)
+				WriteStuff.Close
+				SET WriteStuff = NOTHING
+			Else
+				On Error Resume Next
+				Set objWMIService = GetObject("winmgmts:\\" & strComputer & "\root\CIMV2")
+				Set colItems = objWMIService.ExecQuery("SELECT * FROM Win32_VideoController", "WQL", wbemFlagReturnImmediately + wbemFlagForwardOnly)				
+				if Err.Number = 0 then
+					count = 0									  
+					For Each objItem In colItems
+						count = count + 1
+						if objItem.CurrentBitsPerPixel = "32" then
+							Div1.innerHTML = Div1.innerHTML & " - 32 Bit"
+							Div1.doScroll("pageDown")
+							Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\BitPerPixel\IncorrectBit.txt", 8, True)
+							WriteStuff.WriteLine(strComputer & " = 32 bit on monitor: " & count)
+							WriteStuff.Close
+							SET WriteStuff = NOTHING
+						else
+							Div1.innerHTML = Div1.innerHTML & " - Good"
+							Div1.doScroll("pageDown")
+						end if
+					Next
+				elseif Err.Number <> 0 then
+					Div1.innerHTML = Div1.innerHTML & " - Error: " & err.number
+					Div1.doScroll("pageDown")
+					Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\BitPerPixel\Error.txt", 8, True)
+					WriteStuff.WriteLine(strComputer & " Error: " & Err.Number)
+					WriteStuff.Close
+					SET WriteStuff = NOTHING
+				end if
+			end if
+			Div1.innerHTML = Div1.innerHTML & "</BR>"
+			Div1.doScroll("pageDown")
+		next
+		Set objPing=Nothing  
+		Set objStatus=Nothing 
+	end sub
+
+	Function WMIDateStringToDate(dtmDate)
+		WMIDateStringToDate = CDate(Mid(dtmDate, 5, 2) & "/" & _
+		Mid(dtmDate, 7, 2) & "/" & Left(dtmDate, 4) _
+		& " " & Mid (dtmDate, 9, 2) & ":" & Mid(dtmDate, 11, 2) & ":" & Mid(dtmDate,13, 2))
+	End Function
+
+	Sub window_onload()
+		window.resizeTo 600, 800
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\BitPerPixel") then
+			FSO.CreateFolder("C:\temp\DanScripts\BitPerPixel")
+		end if
+		if not fso.fileexists("c:\temp\DanScripts\BitPerPixel\ComputerNames.txt") then
+			Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\BitPerPixel\ComputerNames.txt", 8, True)
+		end if
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+	 <FORM NAME="BitPerPixel">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Check Bit per Pixel for Monitors</H1>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">This requires a list of computers in C:\Temp\ComputerNames</H6>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">and will output to C:\Temp\DanScripts\BitPerPixel</H6>
+		
+		<input type="checkbox" name="singlePC" onclick="document.BitPerPixel.CompName.disabled = document.BitPerPixel.CompName.checked"><STRONG style="color:white">Single Computer?</STRONG>
+		<STRONG style="color:white">Computer Name:</STRONG><input type="text" name="CompName" disabled="disabled">
+		
+        <TABLE border=0>
+            <TR></TR><TR>
+                <TD><INPUT id=cmdContinue name=cmdContinue
+                     type=button value="Run Script"> 
+				<INPUT id=OpenCmp name=OpenCmp
+					type=button value="Open Computer Names">
+				<INPUT id=OpenTemp name=OpenTemp
+					type=button value="Open BitPerPixel Folder">
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 400px; word-break:keep-all; overflow:auto">
+					Output:
+				</TD>
+            </TR>
+			<TR>
+                <TD><INPUT id=PcOffline name=PcOffline
+                     type=button value="PC's Offline"> 
+				<INPUT id=IncorrectBit name=IncorrectBit
+					type=button value="Incorrect BitPerPixel">
+				<INPUT id=ErrorComp name=ErrorComp
+					type=button value="Errors">
+				</TD>
+			</TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

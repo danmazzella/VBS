@@ -1,0 +1,191 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="CheckRegistry"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>CheckRegistry</TITLE>
+
+<SCRIPT language=vbscript>
+	Sub OpenCmp_onclick()
+		Dim SH
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "c:\temp\DanScripts\CheckRegistry\computernames.txt"
+		Set SH = Nothing 
+	end sub
+	
+	Sub OpenTemp_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\CheckRegistry"
+		Set SH = Nothing 
+	end sub
+	
+	Sub cmdContinue_onclick()
+		Set WshShell = CreateObject("WScript.Shell")
+		
+		Const wbemFlagReturnImmediately = &h10
+		Const wbemFlagForwardOnly = &h20
+		
+		ReadTXT
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Check if VCRTDServer.dll is Installed"""		
+		msgbox("Script Complete")
+	End Sub
+	
+	Sub PcOffline_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\CheckRegistry\PcOffline.txt") then
+			SH.Run "C:\temp\DanScripts\CheckRegistry\PcOffline.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+	
+	Sub NotInstalled_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\CheckRegistry\NoDLL.txt") then
+			SH.Run "C:\temp\DanScripts\CheckRegistry\NoDLL.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+		
+	'=====
+	sub ReadTXT()
+		dim FSO, objTextFile
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set objTextFile = FSO.OpenTextFile("c:\temp\DanScripts\CheckRegistry\computernames.txt")
+		if document.CheckRegistry.singlePC.checked then
+			checkReg document.CheckRegistry.CompName.Value
+		else
+			Do Until objTextFile.AtEndOfStream
+				checkReg objTextFile.Readline
+			Loop
+		end if
+	end sub
+	 '=====
+	
+	
+	
+	Sub checkReg(computerName)
+		dim strComputer, WriteStuff, FSO
+		strComputer = computerName
+		Div1.innerHTML = Div1.innerHTML  & strComputer
+		Div1.doScroll("pageDown")
+		
+		'Ping
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & strComputer & "'")  
+		
+		For Each objStatus in objPing  
+			If  IsNull(objStatus.ReplySize) Then  
+				Set FSO = CreateObject("Scripting.FileSystemObject")
+				Div1.innerHTML = Div1.innerHTML & " - Offline"
+				Div1.doScroll("pageDown")
+				Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\CheckRegistry\PcOffline.txt", 8, True)
+				WriteStuff.WriteLine(strComputer)
+				WriteStuff.Close
+				SET WriteStuff = NOTHING
+			Else  
+				If test(strComputer) = True Then 
+					Div1.innerHTML = Div1.innerHTML  & " - Currently installed"
+					Div1.doScroll("pageDown")
+				Else 
+					Div1.innerHTML = Div1.innerHTML  & " - Not installed"
+					Div1.doScroll("pageDown")
+					Set FSO = CreateObject("Scripting.FileSystemObject")
+					Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\CheckRegistry\NoDLL.txt", 8, True)
+					WriteStuff.WriteLine(strComputer)
+					WriteStuff.Close
+					SET WriteStuff = NOTHING
+					SET FSO = NOTHING
+				End If 		
+			end if
+			Div1.innerHTML = Div1.innerHTML & "</BR>"
+			Div1.doScroll("pageDown")	
+		Next
+	End Sub
+
+	Function Test(strcomputer)
+		Const HKCR=&H80000000 'HKEY_CLASSES_ROOT
+		Const HKCU=&H80000001 'HKEY_CURRENT_USER
+		Const HKLM=&H80000002 'HKEY_LOCAL_MACHINE
+		Const HKU=&H80000003 'HKEY_USERS
+		Const HKCC=&H80000005 'HKEY_CURRENT_CONFIG
+
+		'Read Registry
+		Dim reg, aSubkeys, s, hkroot, LNGHKEY, strSubkey, strKey
+		LNGHKEY = "HKCR"
+		strKey = "TypeLib"
+		strSubkey = "{4A0D899E-A13D-403b-AEA6-7DA7640F22CC}"
+		If LNGHKEY = "HKLM" Then hkRoot = HKLM
+		If LNGHKEY = "HKCU" Then hkRoot = HKCU
+		If LNGHKEY = "HKCR" Then hkRoot = HKCR
+		If LNGHKEY = "HKUSERS" Then hkRoot = HKUSERS
+		Set reg = GetObject("WinMgmts:{impersonationLevel=impersonate}!\\" & strComputer & "\root\default:StdRegProv")
+		reg.EnumKey hkroot, strKey, aSubkeys
+		If Not IsNull(aSubkeys) Then
+			For Each s In aSubkeys
+				If lcase(s)=lcase(strSubkey) Then
+					Test = True
+					Exit Function
+				End If
+			Next
+		End If
+	End Function	
+	
+	Sub window_onload()
+		window.resizeTo 600, 800
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\CheckRegistry") then
+			FSO.CreateFolder("C:\temp\DanScripts\CheckRegistry")
+		end if
+		if not fso.fileexists("c:\temp\DanScripts\CheckRegistry\ComputerNames.txt") then
+			Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\CheckRegistry\ComputerNames.txt", 8, True)
+		end if
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+	 <FORM NAME="CheckRegistry">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Check if VCRTDServer.dll is installed</H1>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">This requires a list of computers in C:\Temp\ComputerNames</H6>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">and will output to C:\Temp\DanScripts\CheckRegistry</H6>
+				
+		<input type="checkbox" name="singlePC" onclick="document.CheckRegistry.CompName.disabled = document.CheckRegistry.CompName.checked"><STRONG style="color:white">Single Computer?</STRONG>
+		<STRONG style="color:white">Computer Name:</STRONG><input type="text" name="CompName" disabled="disabled">
+				
+        <TABLE border=0>
+            <TR></TR>
+			<TR>
+                <TD><INPUT id=cmdContinue name=cmdContinue
+                     type=button value="Run Script"> 
+				<INPUT id=OpenCmp name=OpenCmp
+					type=button value="Open ComputerNames">
+				<INPUT id=OpenTemp name=OpenTemp
+					type=button value="CheckRegistry Folder">
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 400px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+			<TR>
+                <TD><INPUT id=PcOffline name=PcOffline
+                     type=button value="PC's Offline"> 
+					 <INPUT id=NotInstalled name=NotInstalled
+                     type=button value="DLL Not Installed"> 
+				</TD>
+			</TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

@@ -1,0 +1,140 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="CreateFolders"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" ICON="submit.ico"/>
+<HEAD>
+<TITLE>CreateFolders</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button_b.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub OpenCmp_onclick()
+		Dim SH
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "c:\temp\DanScripts\CreateFolders\ComputerNames.txt"
+		Set SH = Nothing 
+	end sub
+	
+	Sub OpenTemp_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\CreateFolders"
+		Set SH = Nothing 
+	end sub
+
+
+	Sub cmdContinue_onclick()
+		Set WshShell = CreateObject("WScript.Shell")
+		
+		Const wbemFlagReturnImmediately = &h10
+		Const wbemFlagForwardOnly = &h20
+		
+		ReadTXT
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Create 15C2 Folders"""
+		msgbox("Script Complete")
+	End Sub
+	
+	sub ReadTXT()
+		dim FSO, objTextFile
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set objTextFile = FSO.OpenTextFile("c:\temp\DanScripts\CreateFolders\computernames.txt")
+		if document.CreateFolders.singlePC.checked then
+			FixRem document.CreateFolders.CompName.Value
+		else
+			Do Until objTextFile.AtEndOfStream
+				FixRem objTextFile.Readline
+			Loop
+		end if
+	end sub
+	
+	Sub FixRem(strComputer)
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("\\jc1dfs2\common_area\15C2-11 Folder\" & strComputer) then
+			FSO.CreateFolder("\\jc1dfs2\common_area\15C2-11 Folder\" & strComputer)
+			div1.innerhtml = div1.innerhtml & "Created the folder " & strComputer & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+	End Sub
+	
+	
+	Sub window_onload()
+		window.resizeTo 520, 560
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\CreateFolders") then
+			FSO.CreateFolder("C:\temp\DanScripts\CreateFolders")
+		end if
+		if not fso.fileexists("c:\temp\DanScripts\CreateFolders\ComputerNames.txt") then
+			Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\CreateFolders\ComputerNames.txt", 8, True)
+		end if
+	End Sub
+</SCRIPT>
+
+</HEAD>
+<BODY style="background-color:black">
+    <FORM NAME="CreateFolders">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Create Folders in J:\15C2</H1>
+        <TABLE border=0>
+			<TR>
+				<TD>
+					<input type="checkbox" name="singlePC" onclick="document.CreateFolders.CompName.disabled = document.CreateFolders.CompName.checked"><STRONG style="color:white">Single Computer?</STRONG>
+					
+					<STRONG style="color:white">Computer Name:</STRONG><input type="text" name="CompName" disabled="disabled">
+				</TD>
+			</TR>
+			<TR>
+                <TD>
+					 <a class="button" id=cmdContinue href="#"><span>Run Script</span></a>
+					<a class="button" id=OpenCmp href="#"><span>Open ComputerNames</span></a>
+					<a class="button" id=OpenTemp href="#"><span>Project Folder</span></a>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 300px; word-break:keep-all; overflow:auto">Output: </BR>
+				</TD>
+            </TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

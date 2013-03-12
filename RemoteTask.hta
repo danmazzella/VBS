@@ -1,0 +1,226 @@
+<title>&nbsp;&nbsp;Remote Task Manager</title>
+<HTA:APPLICATION 
+     APPLICATIONNAME="RTM"
+		 BORDER="thin"
+     SCROLL="no"
+		 ICON="Flag.ico"
+     SINGLEINSTANCE="yes"
+ />
+ 
+ <style>
+BODY
+ .infield { 
+   font-family: Helvetica;
+   font-size: 12pt;
+	 margin-left:3px;
+	 margin-right:3px;
+	 color: #000080;
+}
+
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+ 
+<script language="vbscript">
+
+sub Window_onUnload
+	Set FSO = CreateObject("Scripting.FileSystemObject")
+	if FSO.FileExists("C:\temp\tasks.txt") then
+		FSO.DeleteFile("C:\temp\tasks.txt")
+	end if
+end sub
+
+Sub Window_Onload
+	self.Focus()
+	self.ResizeTo 550,800 
+End Sub
+
+sub PickPC()
+	strComputer = comp_name.value
+	readComputer(strComputer)
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Remote Task Manager"""	
+end sub
+
+sub readComputer(strComputer)		
+	Set FSO = CreateObject("Scripting.FileSystemObject")
+	if FSO.FileExists("C:\temp\temp.txt") then
+		FSO.DeleteFile("C:\temp\temp.txt")
+	end if
+	
+	Div1.innerHTML = Div1.innerHTML & "About to Pull all Tasks" & "<BR>"
+	Div1.doScroll("pageDown")
+	
+	Dim oShell
+	Set oShell = CreateObject ("WScript.Shell")
+	oShell.run "cmd.exe /c tasklist /FI ""USERNAME ne SYSTEM"" /FI ""USERNAME ne NETWORK"" /FI ""USERNAME ne SERVICE"" /s " & strComputer & " >> c:\temp\temp.txt", 0, true
+
+	Div1.innerHTML = Div1.innerHTML & "Taks loaded, sorting by Mem Usage" & "<BR>"
+	Div1.doScroll("pageDown")
+	
+	oShell.run "cmd.exe /c ""\\jc1wsalt03\Library\Packages\Dantools\task.bat""",0,true
+	Set oShell = Nothing
+
+	Div1.innerHTML = Div1.innerHTML & "Finished sorting, Loading Sorted List" & "<BR>"
+	Div1.doScroll("pageDown")
+	
+	readtxt()
+end sub
+
+sub readtxt()
+	Set FSO = CreateObject("Scripting.FileSystemObject")
+	set objtextfile = fso.opentextfile("c:\temp\tasks.txt")
+	do until objtextfile.AtEndOfStream
+		TxtLine = objtextfile.readline
+		AddToList(TxtLine)
+	loop
+end sub
+
+sub AddToList(line)	
+	Set oNewOpt = document.createElement("OPTION")
+	oNewOpt.Text = line
+	oNewOpt.Value = line
+	grp_selected.Options.Add(oNewOpt)
+	Set oNewOpt = Nothing		
+end sub
+
+sub KillTask()
+	TheTask = grp_selected.Options.value
+	lSpace = InStr(1, TheTask, " ", vbTextCompare)
+    ShrinkTask = Trim(Left(TheTask, lSpace))
+	
+	Div1.innerHTML = Div1.innerHTML & "Killing the task...." & "<BR>"
+	Div1.doScroll("pageDown")
+	
+	strComputer = comp_name.value
+	Set objWMIService = GetObject("winmgmts:" _
+		& "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+	Set colProcessList = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE Name = '" & ShrinkTask & "'")
+	For Each objProcess in colProcessList
+		objProcess.Terminate()
+	Next	
+	
+	For Each oOpt In grp_selected.Options
+		 If InStr(1, oOpt.Text, TheTask, vbTextCompare) Then
+				grp_selected.Options.Remove(oOpt.Index)
+		 End If
+	Next
+	Div1.innerHTML = Div1.innerHTML & "Task has been ended" & "<BR>"
+	Div1.doScroll("pageDown")
+end sub
+
+sub EventVWR()
+	Div1.innerHTML = Div1.innerHTML & "Open the Event Viewer" & "<BR>"
+	Div1.doScroll("pageDown")
+	strComputer = comp_name.value
+	Dim oShell
+	Set oShell = CreateObject ("WScript.Shell")
+	oShell.run "cmd.exe /c eventvwr " & strComputer, 0, true
+	Set oShell = Nothing
+end sub
+
+sub CompMgmt()
+	Div1.innerHTML = Div1.innerHTML & "Open Computer Management" & "<BR>"
+	Div1.doScroll("pageDown")
+	strComputer = comp_name.value
+	Dim oShell
+	Set oShell = CreateObject ("WScript.Shell")
+	oShell.run "cmd.exe /c compmgmt.msc /computer:\\" & strComputer, 0, true
+	Set oShell = Nothing
+end sub
+
+sub Services()
+	Div1.innerHTML = Div1.innerHTML & "Open the Services" & "<BR>"
+	Div1.doScroll("pageDown")
+	strComputer = comp_name.value
+	Dim oShell
+	Set oShell = CreateObject ("WScript.Shell")
+	oShell.run "cmd.exe /c Services.msc /computer:\\" & strComputer, 0, true
+	Set oShell = Nothing
+end sub
+
+</script>
+
+
+
+
+<body style="background-color:black">
+	<h1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Remote Task Manager</h1>
+	<h6 style="text-align:center;font-family:arial;color:white;font-size:15px;">This is useful for Windows 7, where RTM does not work</h3>
+	<table>
+		<tr>
+				<td>
+						<Strong style="color:white" class="intable">Computer Name: </Strong>
+						<input type="text" id="comp_name" size="40" maxlength="45" value=
+		"" class="infield"/>
+				</td>
+		</tr>
+
+		<tr>
+			<td>
+				<a class="button" href="#" onclick="PickPC"><span>Load Tasks</span></a>
+			</td>
+		</tr>
+
+		<tr>
+				<td>
+						<select id="grp_selected" class="infield" size="10" MULTIPLE>
+						</select>
+				</td>
+		</tr>
+
+		<tr>
+			<td>
+				<a class="button" href="#" onclick="KillTask"><span>Kill Selected Taks</span></a>
+
+				<a class="button" href="#" onclick="EventVwr"><span>Open Event Viewer</span></a>
+			</td>
+		</tr>
+		<tr>
+			<td>
+				<a class="button" href="#" onclick="CompMgmt"><span>Open CompMgmt</span></a>
+
+				<a class="button" href="#" onclick="Services"><span>Open Services</span></a>
+			</td>
+		</tr>
+		<TR>
+			<TD>
+				<div id="div1" style=" background-color:LightBlue; width: 400px; height: 200px; word-break:keep-all; overflow:auto">
+				Output: </BR>
+			</TD>
+		</TR>
+</table>
+</body>

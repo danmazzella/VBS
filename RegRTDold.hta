@@ -1,0 +1,399 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="RegRTD"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" WindowsState = "normal"/> 
+<HEAD>
+<TITLE>RegRTD</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub OpenCmp_onclick()
+		Dim SH
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "c:\temp\DanScripts\RegRTD\computernames.txt"
+		Set SH = Nothing 
+	end sub
+	
+	Sub OpenTemp_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run "C:\temp\DanScripts\RegRTD"
+		Set SH = Nothing 
+	end sub
+	
+	Sub cmdContinue_onclick()
+		Set WshShell = CreateObject("WScript.Shell")
+		
+		Const wbemFlagReturnImmediately = &h10
+		Const wbemFlagForwardOnly = &h20
+		
+		ReadTXT
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Register VCRTDServer.dll"""		
+		msgbox("Script Complete")
+	End Sub
+	
+	Sub WinXPrtd_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run """\\jc1dfs2\common_area\ETF RTD\PMON\WinXP"""
+		Set SH = Nothing 
+	end sub
+	
+	Sub Win7RTD_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run """\\jc1dfs2\common_area\ETF RTD\PMON\Win7"""
+		Set SH = Nothing 
+	end sub
+	
+	Sub XPTempRTD_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run """\\jc1dfs2\common_area\ETF RTD\PMON\XPTestFile"""
+		Set SH = Nothing 
+	end sub
+	
+	Sub W7TempRTD_onclick()
+		Dim SH 
+		Set SH = CreateObject("WScript.Shell") 
+		SH.Run """\\jc1dfs2\common_area\ETF RTD\PMON\7TestFile"""
+		Set SH = Nothing 
+	end sub
+	
+	Sub PcOffline_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\RegRTD\PcOffline.txt") then
+			SH.Run "C:\temp\DanScripts\RegRTD\PcOffline.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+		
+	Sub RegFailed_onclick()
+		Dim SH,fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set SH = CreateObject("WScript.Shell") 
+		if fso.fileexists("c:\temp\danscripts\RegRTD\RegFailed.txt") then
+			SH.Run "C:\temp\DanScripts\RegRTD\RegFailed.txt"
+		end if
+		Set SH = Nothing 
+	end sub
+	
+	sub readtxt()
+		failedAttempt = false
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		set objtextfile = fso.opentextfile("c:\temp\danscripts\regrtd\computernames.txt")
+		if document.RegRTD.singlepc.checked then
+			onPC = PingPC(document.RegRTD.compname.value)
+			if onPC = true then
+				unRegDLL document.RegRTD.compname.value, failedAttempt
+			end if
+		else
+			do until objtextfile.AtEndOfStream
+				TxtLine = objtextfile.readline
+				onPC = PingPC(TxtLine)
+				if onPC = true then
+					unRegDLL TxtLine, failedAttempt
+				end if
+			loop
+		end if
+	end sub
+
+	function PingPC(msg)
+		'Ping
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & msg & "'")  
+		
+		For Each objStatus in objPing  
+			If  IsNull(objStatus.ReplySize) Then  
+				Div1.innerHTML = Div1.innerHTML & msg & " - Offline" & "<BR>" & "<BR>"
+				Div1.doScroll("pageDown")
+				Set FileSystem = CreateObject("Scripting.FileSystemObject")
+				Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\RegRTD\pcOffline.txt", 8, True)
+				WriteStuff.WriteLine(msg)
+				WriteStuff.Close
+				SET WriteStuff = NOTHING
+				SET FileSystem = NOTHING     
+			else
+				PingPC = true
+			end if
+		Next  
+	  
+		Set objPing=Nothing  
+		Set objStatus=Nothing  
+	end function
+	
+	sub unRegDLL(strComputer, failedAttempt)
+		Div1.innerHTML = Div1.innerHTML  & "Target PC: " & strComputer & "<BR>"
+		Div1.doScroll("pageDown")
+		
+		if document.RegRTD.RTDFile(0).checked then
+			RTDFile = "VCRTDServer.dll"
+		elseif document.RegRTD.RTDFile(1).checked then
+			RTDFile = "ETFRTDServer.dll"
+		end if	
+		
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\RegRTD\REGRTD.bat", 8, True)
+		Set objShell = CreateObject("WScript.Shell")
+		sCmd = "psexec \\" & strComputer & " /accepteula -h regsvr32.exe /u /s c:\windows\system32\" & RTDFile
+		Div1.innerHTML = Div1.innerHTML  & "UnRegistering DLL at C:\Windows\System32" & "<BR>"
+		Div1.doScroll("pageDown")
+		WriteStuff.WriteLine(sCmd)
+		sCmd = "psexec \\" & strComputer & " -h regsvr32.exe /u /s c:\temp\" & RTDFile
+		Div1.innerHTML = Div1.innerHTML  & "UnRegistering DLL at C:\Temp" & "<BR>"
+		Div1.doScroll("pageDown")
+		WriteStuff.WriteLine(sCmd) 
+		sCmd = "psexec \\" & strComputer & " -h regsvr32.exe /u /s c:\windows\" & RTDFile
+		Div1.innerHTML = Div1.innerHTML  & "UnRegistering DLL at C:\Windows" & "<BR>"
+		Div1.doScroll("pageDown")
+		WriteStuff.WriteLine(sCmd) 
+		WriteStuff.Close
+		objShell.Run "%COMSPEC% /c " & """c:\temp\DanScripts\RegRTD\REGRTD.bat""", 0, TRUE
+		SET WriteStuff = NOTHING
+		FSO.DeleteFile("c:\temp\DanScripts\RegRTD\REGRTD.bat")
+		set FSO = NOTHING
+		
+		Div1.innerHTML = Div1.innerHTML  & "......." & "<BR>"
+		Div1.doScroll("pageDown")
+		Div1.innerHTML = Div1.innerHTML  & "DLL has been unregistered" & "<BR>" & "<BR>"
+		Div1.doScroll("pageDown")
+		
+		if document.RegRTD.RegUnReg(0).checked then
+			copyDLL strComputer, RTDFile, failedAttempt
+		elseif document.RegRTD.RegUnReg(1).checked then
+		end if		
+	end sub		
+
+	sub copyDLL(strComputer, RTDFile, failedAttempt)
+		on error resume next
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		
+		Div1.innerHTML = Div1.innerHTML  & "Target PC: " & strComputer & "<BR>"
+		Div1.doScroll("pageDown")
+		
+		if FSO.FileExists("\\" & strComputer & "\c$\windows\system32\" & RTDFile) then
+			FSO.DeleteFile("\\" & strComputer & "\c$\windows\system32\" & RTDFile)
+		end if
+		if FSO.FileExists("\\" & strComputer & "\c$\temp\" & RTDFile) then
+			FSO.DeleteFile("\\" & strComputer & "\c$temp\" & RTDFile)
+		end if
+		if FSO.FileExists("\\" & strComputer & "\c$\windows\" & RTDFile) then
+			FSO.DeleteFile("\\" & strComputer & "\c$\windows\" & RTDFile)
+		end if
+		
+		if document.RegRTD.whichFile(0).checked then
+			RTDFolder = "WinXP"
+		elseif document.RegRTD.whichFile(1).checked then
+			RTDFolder = "Win7"
+		elseif document.RegRTD.whichFile(2).checked then
+			RTDFolder = "XPTestFile"
+		elseif document.RegRTD.whichFile(3).checked then
+			RTDFolder = "7TestFile"
+		end if
+		
+		if FSO.FileExists("\\" & strComputer & "\c$\windows\system32\" & RTDFile) then
+			CopyTo = "Windows"
+		end if
+		
+		if failedAttempt then
+			FSO.CopyFile "\\jc1dfs2\common_area\ETF RTD\PMON\" & RTDFolder & "\" & RTDFile, "\\" & strComputer & "\c$\temp\" & RTDFile
+			Div1.innerHTML = Div1.innerHTML  & "Registering DLL at C:\Temp" & "<BR>"
+			Div1.doScroll("pageDown")
+			RegDLL "temp", strComputer, RTDFile
+		elseif CopyTo = "Windows" then 
+			FSO.CopyFile "\\jc1dfs2\common_area\ETF RTD\PMON\" & RTDFolder & "\" & RTDFile, "\\" & strComputer & "\c$\windows\" & RTDFile
+			Div1.innerHTML = Div1.innerHTML  & "Registering DLL at C:\Windows" & "<BR>"
+			Div1.doScroll("pageDown")
+			RegDLL "windows", strComputer, RTDFile
+		else
+			FSO.CopyFile "\\jc1dfs2\common_area\ETF RTD\PMON\" & RTDFolder & "\" & RTDFile, "\\" & strComputer & "\c$\windows\system32\" & RTDFile
+			Div1.innerHTML = Div1.innerHTML  & "Registering DLL at C:\Windows\System32" & "<BR>"
+			Div1.doScroll("pageDown")
+			RegDLL "system32", strComputer, RTDFile
+		end if
+	end sub
+
+	sub RegDLL(location, strComputer, RTDFile)
+		Div1.innerHTML = Div1.innerHTML  & "Registering DLL" & "<BR>"
+		Div1.doScroll("pageDown")
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\RegRTD\REGRTD.bat", 8, True)
+		Set objShell = CreateObject("WScript.Shell")
+		if location = "windows" then
+			sCmd = "psexec \\" & strComputer & " -h regsvr32.exe /s c:\windows\" & RTDFile & " 2> \\" & strComputer & "\c$\out.txt"
+			WriteStuff.WriteLine(sCmd)
+		elseif location = "system32" then
+			sCmd = "psexec \\" & strComputer & " -h regsvr32.exe /s c:\windows\system32\" & RTDFile & " 2> \\" & strComputer & "\c$\out.txt"
+			WriteStuff.WriteLine(sCmd)
+		elseif location = "temp" then
+			sCmd = "psexec \\" & strComputer & " -h regsvr32.exe /s c:\temp\" & RTDFile & " 2> \\" & strComputer & "\c$\out.txt"
+			WriteStuff.WriteLine(sCmd)
+		end if 
+		WriteStuff.Close
+		objShell.Run "%COMSPEC% /c " & "c:\temp\DanScripts\RegRTD\REGRTD.bat", 0, true
+		SET WriteStuff = NOTHING
+		FSO.DeleteFile("c:\temp\DanScripts\RegRTD\REGRTD.bat")
+		set FSO = NOTHING
+		Div1.innerHTML = Div1.innerHTML  & "......." & "<BR>"
+		Div1.doScroll("pageDown")
+		readError strComputer
+	end sub
+
+	sub readError(strComputer)
+		Dim arrFileLines()
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		
+		Set objFile = FSO.OpenTextFile("\\" & strComputer & "\c$\out.txt",1)
+		i = 0
+		Do Until objFile.AtEndOfStream
+			 Redim Preserve arrFileLines(i)
+			 arrFileLines(i) = objFile.ReadLine
+			 i = i + 1
+		Loop
+		if left(arrFileLines(Ubound(arrFileLines)),19) = "regsvr32.exe exited" then
+			code = Right(arrFileLines(Ubound(arrFileLines)),2)
+			if left(code,1) <> "0" then
+				
+				if failedAttempt = false then
+					failedAttempt = true
+					unRegDLL strComputer, failedAttempt
+				end if
+				exit sub
+				Div1.innerHTML = Div1.innerHTML  & "Did not successfully register" & "<BR>" & "<BR>"
+				Div1.doScroll("pageDown")
+				Set FileSystem = CreateObject("Scripting.FileSystemObject")
+				Set WriteStuff = FileSystem.OpenTextFile("c:\temp\DanScripts\RegRTD\RegFailed.txt", 8, True)
+				WriteStuff.WriteLine(strComputer)
+				WriteStuff.Close
+				SET WriteStuff = NOTHING
+				SET FileSystem = NOTHING     
+			elseif left(code,1) = "0" then
+				Div1.innerHTML = Div1.innerHTML  & "DLL has been registered" & "<BR>" & "<BR>"
+				Div1.doScroll("pageDown")
+			end if
+		end if
+		objFile.close
+		FSO.DeleteFile("\\" & strComputer & "\c$\out.txt")
+	end sub
+	
+	Sub window_onload()
+		window.resizeTo 600, 880
+		dim fso
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		if not fso.folderexists("C:\temp\DanScripts") then
+			FSO.CreateFolder("C:\temp\DanScripts")
+		end if
+		if not fso.folderexists("C:\temp\DanScripts\RegRTD") then
+			FSO.CreateFolder("C:\temp\DanScripts\RegRTD")
+		end if
+		if not fso.fileexists("c:\temp\DanScripts\RegRTD\ComputerNames.txt") then
+			Set WriteStuff = FSO.OpenTextFile("c:\temp\DanScripts\RegRTD\ComputerNames.txt", 8, True)
+		end if
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+	 <FORM NAME="RegRTD">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Install RTD Server on Computers</H1>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">This requires a list of computers in C:\Temp\ComputerNames</H6>
+		<H6 style="text-align:center;font-family:arial;color:white;font-size:15px;">and will output to C:\Temp\DanScripts\RegRTD</H6>
+		
+		<input type="checkbox" name="singlePC" onclick="document.RegRTD.CompName.disabled = document.RegRTD.CompName.checked"><STRONG style="color:white">Single Computer?</STRONG>
+		<STRONG style="color:white">Computer Name:</STRONG><input type="text" name="CompName" disabled="disabled">
+		
+        <TABLE border=0>
+            <TR></TR>
+			<TR>
+				<TD>
+					<input type="radio" name="RTDFile" checked><STRONG style="color:white">VCRTDServer (PMON)</STRONG>
+					<input type="radio" name="RTDFile"><STRONG style="color:white">ETFRTDServer</STRONG>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<input type="radio" name="whichFile" checked><STRONG style="color:white">Windows XP</STRONG>
+					<input type="radio" name="whichFile"><STRONG style="color:white">Windows 7</STRONG>
+					<input type="radio" name="whichFile"><STRONG style="color:white">WinXP Test File</STRONG>
+					<input type="radio" name="whichFile"><STRONG style="color:white">Win7 Test File</STRONG>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<input type="radio" name="RegUnReg" checked><STRONG style="color:white">Register</STRONG>
+					<input type="radio" name="RegUnReg"><STRONG style="color:white">UnRegister</STRONG>
+				</TD>
+			</TR>
+			<TR>
+                <TD>
+					<a class="button" id=cmdContinue href="#"><span>Run Script</span></a>
+					<a class="button" id=OpenCmp href="#"><span>Open ComputerNames</span></a>
+					<a class="button" id=OpenTemp href="#"><span>RegRTD Folder</span></a>
+				</TD>
+			</TR>
+			<TR>
+                <TD>
+					<a class="button" id=WinXPrtd href="#"><span>WinXP RTD Folder</span></a>
+					<a class="button" id=Win7RTD href="#"><span>Win7 RTD Folder</span></a>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<a class="button" id=XPTempRTD href="#"><span>WinXP Test RTD Folder</span></a>
+					<a class="button" id=W7TempRTD href="#"><span>Win7 Test RTD Folder</span></a>
+				</TD>
+			</TR>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 400px; word-break:keep-all; overflow:auto">
+					Output: </BR>
+				</TD>
+            </TR>
+			<TR>
+                <TD>
+					<a class="button" id=PcOffline href="#"><span>PC's Offline</span></a>
+					<a class="button" id=RegFailed href="#"><span>DLL Registration Failed</span></a>
+				</TD>
+			</TR>
+        </TABLE>
+    </FORM>
+</BODY>
+</HTML>

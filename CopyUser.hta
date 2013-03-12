@@ -1,0 +1,944 @@
+<HTML>
+<HTA:APPLICATION APPLICATIONNAME="FCopy"
+    CONTEXTMENU=no SCROLL=no MAXIMIZEBUTTON=no SINGLEINSTANCE="yes" ICON="copyuser.ico"/>
+<HEAD>
+<TITLE>FCopy</TITLE>
+
+<style>
+.clear { /* generic container (i.e. div) for floating buttons */
+    overflow: hidden;
+    width: 100%;
+}
+
+a.button {
+    background: transparent url('bg_button_b.png') no-repeat scroll top right;
+    color: #444;
+    display: block;
+    float: left;
+    font: normal 12px arial, sans-serif;
+    height: 24px;
+    margin-right: 6px;
+    padding-right: 18px; /* sliding doors padding */
+    text-decoration: none;
+}
+
+a.button span {
+    background: transparent url('bg_button_span.png') no-repeat;
+    display: block;
+    line-height: 14px;
+    padding: 5px 0 5px 18px;
+}
+
+a.button:active {
+    background-position: bottom right;
+    color: #000;
+    outline: none; /* hide dotted outline in Firefox */
+}
+
+a.button:active span {
+    background-position: bottom left;
+    padding: 6px 0 4px 18px; /* push text down 1px */
+}
+</style>
+
+<SCRIPT language=vbscript>
+	Sub cmdContinue_onclick()
+		strComputer = document.FCopy.strComputer.value
+		strNewComputer = document.FCopy.strNewComputer.value
+		username = document.FCopy.UserName.value
+				
+		if strComputer = "" then
+			div1.innerhtml = div1.innerhtml & "Please put in source Computer" & "<BR>"
+			exit sub
+		end if
+		if strNewComputer = "" then
+			div1.innerhtml = div1.innerhtml & "Please put in destination Computer" & "<BR>"
+			exit sub
+		end if
+		if username = "" then
+			div1.innerhtml = div1.innerhtml & "Please enter username" & "<BR>"
+			exit sub
+		end if
+		
+		SourceOnline = CheckComputer(strComputer)
+		DestOnline = CheckComputer(strNewComputer)
+				
+		if SourceOnline AND DestOnline then
+			div1.innerhtml = div1.innerhtml & "Username: " & username & "<BR>"
+			Div1.doScroll("pageDown")
+			if document.FCopy.Pivot.checked then
+				pivot
+			end if
+			if document.FCopy.outlook.checked then
+				outlook
+			end if
+			if document.FCopy.aim.checked then
+				aim
+			end if
+			if document.FCopy.desktop.checked then
+				desktop
+			end if
+			if document.FCopy.RBWS.checked then
+				RBWS
+			end if
+			div1.innerhtml = div1.innerhtml & "<BR><BR>"
+			Div1.doScroll("pageDown")
+		else
+			div1.innerhtml = div1.innerhtml & "PC Offline" & "<BR>"
+			div1.doscroll("pageDown")
+	
+			if SourceOnline = false then
+				div1.innerhtml = div1.innerhtml & "Source PC = Offline" & "<BR>"
+				div1.doscroll("pageDown")
+			end if
+			if DestOnline = false then
+				div1.innerhtml = div1.innerhtml & "Destination PC = Offline" & "<BR>"
+				div1.doscroll("pageDown")
+			end if
+		end if
+		
+		Dim objShell
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		objShell.Run "cscript.exe \\jc1wsalt03\library\packages\dantools\WriteScriptLog.vbs ""Copy User Setting Pivot/NK2/AIM/Desktop"""
+	End Sub
+	
+	
+	function CheckComputer(computerName)
+		dim strComputer, FileSystem, WriteStuff, objPing, objStatus
+		CheckComputer = true
+		
+		'Ping
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._  
+		ExecQuery("select Replysize from Win32_PingStatus where address = '" & computerName & "'")  
+		
+		For Each objStatus in objPing  
+			If  IsNull(objStatus.ReplySize) Then  
+				'PC OFFLINE
+				CheckComputer = false
+			else
+				CheckComputer = true
+			End If
+		Next  
+	  
+		Set objPing=Nothing  
+		Set objStatus=Nothing  
+	end function
+	
+	
+	sub pivot()
+		reboot = false
+		strComputer = document.FCopy.strComputer.value
+		strNewComputer = document.FCopy.strNewComputer.value
+		username = document.FCopy.UserName.value
+		
+		Dim FSO, objShell
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+
+		ComputerOS = OperatingSystem(strComputer)
+		NewComputerOS = OperatingSystem(strNewComputer)
+		
+		CompSource = strComputer
+		CompDest = strNewComputer
+		
+		if ComputerOS = "Win7" then
+			sourceFolder = "\\" & CompSource & "\c$\Users\"
+			IMTradeLoc = "\AppData\Roaming\Pivot Solutions\IMTRADER"
+		elseif ComputerOS = "XP" then
+			sourceFolder = "\\" & CompSource & "\c$\Documents and Settings\"
+			IMTradeLoc = "\Application Data\Pivot Solutions\IMTRADER"
+		else 
+			div1.innerhtml = div1.innerhtml & "Unable to detemine OS" & "<BR>"
+			exit sub
+		end if
+		
+		if NewComputerOS = "Win7" then
+			destFolder = "\\" & CompDest & "\c$\users\"
+			NewIMTradeLoc = "\AppData\Roaming\Pivot Solutions\IMTRADER"
+		elseif NewComputerOS = "XP" then
+			destFolder = "\\" & CompDest & "\c$\Documents and Settings\"
+			NewIMTradeLoc = "\Application Data\Pivot Solutions\IMTRADER"
+		else 
+			div1.innerhtml = div1.innerhtml & "Unable to detemine OS" & "<BR>"
+			exit sub
+		end if
+
+		
+		knightSource = ""
+		knightDest = ""
+
+		if FSO.FolderExists(sourceFolder & username) AND FSO.FolderExists(sourceFolder & username & "\Desktop") then
+			SourceProf = True
+			if FSO.FolderExists(sourceFolder & username & IMTradeLoc) then
+				SourcePivot = sourceFolder & username & IMTradeLoc
+				sourceThere = true
+			else 
+				sourceThere = False
+			end if
+		else 
+			SourceProf = False
+		end if
+		
+		if sourceProf = false then
+			if FSO.FolderExists(sourceFolder & username & ".KNIGHT") AND FSO.FolderExists(sourceFolder & username & ".KNIGHT" & "\Desktop") then
+				SourceProf = True
+				if FSO.FolderExists(sourceFolder & username & ".KNIGHT" & IMTradeLoc) then
+					SourcePivot = sourceFolder & username & ".KNIGHT" & IMTradeLoc
+					sourceThere = true
+					knightSource = ".KNIGHT"
+				else 
+					sourceThere = False
+				end if
+			else 
+				SourceProf = False
+			end if
+		end if
+
+		if FSO.FolderExists(destFolder & username) AND FSO.FolderExists(destFolder & username & "\Desktop") then
+			DestProf = True
+			if FSO.FolderExists(destFolder & username & NewIMTradeLoc) then
+				DestPivot = destFolder & username & NewIMTradeLoc
+				destThere = true
+			else 
+				destThere = False
+			end if
+		else 
+			DestProf = False
+		end if
+		
+		if destProf = false then
+			if FSO.FolderExists(destFolder & username & ".KNIGHT") AND FSO.FolderExists(destFolder & username & ".KNIGHT" & "\Desktop") then
+				DestProf = True
+				if FSO.FolderExists(destFolder & username & ".KNIGHT" & NewIMTradeLoc) then
+					DestPivot = destFolder & username & ".KNIGHT" & NewIMTradeLoc
+					destThere = true
+					knightDest = ".KNIGHT"
+				else 
+					destThere = False
+				end if
+			else 
+				DestProf = False
+			end if
+		end if
+			
+		if sourceProf = false then
+			div1.innerhtml = div1.innerhtml & "The user has not logged onto the source PC yet" & "<BR>"
+			Div1.doScroll("pageDown")
+		elseif sourceThere = False then
+			div1.innerhtml = div1.innerhtml & "There are no Pivot settings on source PC" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+		
+		if destProf = false then
+			div1.innerhtml = div1.innerhtml & "The user has not logged onto the destination PC yet" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+			
+		
+		if sourceThere AND DestProf then			
+			strComputer = CompDest
+			
+			on error resume next
+			
+			Set objWMIService = GetObject("winmgmts:" _
+				& "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+			Set colProcessList = objWMIService.ExecQuery _
+				("SELECT * FROM Win32_Process WHERE Name = 'Pivot.Client.IMTrader.exe'")
+			For Each objProcess in colProcessList
+				objProcess.Terminate()
+			Next
+			
+			if destThere = True then
+				on error resume next
+				if FSO.FileExists(DestPivot & "\PivotStore.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\PivotStore.xml.bak")
+				end if
+				if fso.fileExists(DestPivot & "\PivotStore.xml") then
+					FSO.MoveFile DestPivot & "\PivotStore.xml", DestPivot & "\PivotStore.xml.bak"
+				end if
+				if FSO.fileexists(SourcePivot & "\PivotStore.xml") then
+					FSO.CopyFile SourcePivot & "\PivotStore.xml", DestPivot & "\PivotStore.xml"
+				end if
+		
+				if FSO.FileExists(DestPivot & "\6_0_2GwPlugin.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_0_2GwPlugin.xml.bak")
+				end if
+				if FSO.FileExists(DestPivot & "\6_0_2settings.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_0_2settings.xml.bak")
+				end if
+				
+				if fso.fileExists(DestPivot & "\6_0_2GwPlugin.xml") then
+					FSO.MoveFile DestPivot & "\6_0_2GwPlugin.xml", DestPivot & "\6_0_2GwPlugin.xml.bak"
+				end if
+				if fso.fileExists(DestPivot & "\6_0_2settings.xml") then
+					FSO.MoveFile DestPivot & "\6_0_2settings.xml", DestPivot & "\6_0_2settings.xml.bak"
+				end if
+				
+				if FSO.fileexists(SourcePivot & "\6_0_2GwPlugin.xml") then
+					FSO.CopyFile SourcePivot & "\6_0_2GwPlugin.xml", DestPivot & "\6_0_2GwPlugin.xml"
+				end if
+				if FSO.fileexists(SourcePivot & "\6_0_2settings.xml") then
+					FSO.CopyFile SourcePivot & "\6_0_2settings.xml", DestPivot & "\6_0_2settings.xml"
+				end if	
+				
+				if FSO.FileExists(DestPivot & "\6_2_3GwPlugin.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_2_3GwPlugin.xml.bak")
+				end if
+				if FSO.FileExists(DestPivot & "\6_2_3settings.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_2_3settings.xml.bak")
+				end if
+				
+				if fso.fileExists(DestPivot & "\6_2_3GwPlugin.xml") then
+					FSO.MoveFile DestPivot & "\6_2_3GwPlugin.xml", DestPivot & "\6_2_3GwPlugin.xml.bak"
+				end if
+				if fso.fileExists(DestPivot & "\6_2_3settings.xml") then
+					FSO.MoveFile DestPivot & "\6_2_3settings.xml", DestPivot & "\6_2_3settings.xml.bak"
+				end if
+				
+				if FSO.fileexists(SourcePivot & "\6_2_3GwPlugin.xml") then
+					FSO.CopyFile SourcePivot & "\6_2_3GwPlugin.xml", DestPivot & "\6_2_3GwPlugin.xml"
+				end if
+				if FSO.fileexists(SourcePivot & "\6_2_3settings.xml") then
+					FSO.CopyFile SourcePivot & "\6_2_3settings.xml", DestPivot & "\6_2_3settings.xml"
+				end if
+				
+				if FSO.FileExists(DestPivot & "\6_5_6GwPlugin.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_5_6GwPlugin.xml.bak")
+				end if
+				if FSO.FileExists(DestPivot & "\6_5_6settings.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_5_6settings.xml.bak")
+				end if
+				
+				if fso.fileExists(DestPivot & "\6_5_6GwPlugin.xml") then
+					FSO.MoveFile DestPivot & "\6_5_6GwPlugin.xml", DestPivot & "\6_5_6GwPlugin.xml.bak"
+				end if
+				if fso.fileExists(DestPivot & "\6_5_6settings.xml") then
+					FSO.MoveFile DestPivot & "\6_5_6settings.xml", DestPivot & "\6_5_6settings.xml.bak"
+				end if
+				
+				if FSO.fileexists(SourcePivot & "\6_5_6GwPlugin.xml") then
+					FSO.CopyFile SourcePivot & "\6_5_6GwPlugin.xml", DestPivot & "\6_5_6GwPlugin.xml"
+				end if
+				if FSO.fileexists(SourcePivot & "\6_5_6settings.xml") then
+					FSO.CopyFile SourcePivot & "\6_5_6settings.xml", DestPivot & "\6_5_6settings.xml"
+				end if
+
+				if FSO.FileExists(DestPivot & "\6_6_4GwPlugin.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_6_4GwPlugin.xml.bak")
+				end if
+				if FSO.FileExists(DestPivot & "\6_6_4settings.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_6_4settings.xml.bak")
+				end if
+				
+				if fso.fileExists(DestPivot & "\6_6_4GwPlugin.xml") then
+					FSO.MoveFile DestPivot & "\6_6_4GwPlugin.xml", DestPivot & "\6_6_4GwPlugin.xml.bak"
+				end if
+				if fso.fileExists(DestPivot & "\6_6_4settings.xml") then
+					FSO.MoveFile DestPivot & "\6_6_4settings.xml", DestPivot & "\6_6_4settings.xml.bak"
+				end if
+				
+				if FSO.fileexists(SourcePivot & "\6_6_4GwPlugin.xml") then
+					FSO.CopyFile SourcePivot & "\6_6_4GwPlugin.xml", DestPivot & "\6_6_4GwPlugin.xml"
+				end if
+				if FSO.fileexists(SourcePivot & "\6_6_4settings.xml") then
+					FSO.CopyFile SourcePivot & "\6_6_4settings.xml", DestPivot & "\6_6_4settings.xml"
+				end if
+				
+				if FSO.FileExists(DestPivot & "\6_7_1GwPlugin.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_7_1GwPlugin.xml.bak")
+				end if
+				if FSO.FileExists(DestPivot & "\6_7_1settings.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_7_1settings.xml.bak")
+				end if
+				
+				if fso.fileExists(DestPivot & "\6_7_1GwPlugin.xml") then
+					FSO.MoveFile DestPivot & "\6_7_1GwPlugin.xml", DestPivot & "\6_7_1GwPlugin.xml.bak"
+				end if
+				if fso.fileExists(DestPivot & "\6_7_1settings.xml") then
+					FSO.MoveFile DestPivot & "\6_7_1settings.xml", DestPivot & "\6_7_1settings.xml.bak"
+				end if
+				
+				if FSO.fileexists(SourcePivot & "\6_7_1GwPlugin.xml") then
+					FSO.CopyFile SourcePivot & "\6_7_1GwPlugin.xml", DestPivot & "\6_7_1GwPlugin.xml"
+				end if
+				if FSO.fileexists(SourcePivot & "\6_7_1settings.xml") then
+					FSO.CopyFile SourcePivot & "\6_7_1settings.xml", DestPivot & "\6_7_1settings.xml"
+				end if
+				
+				if FSO.FileExists(DestPivot & "\6_8_2GwPlugin.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_8_2GwPlugin.xml.bak")
+				end if
+				if FSO.FileExists(DestPivot & "\6_8_2settings.xml.bak") then
+					FSO.DeleteFile(DestPivot & "\6_8_2settings.xml.bak")
+				end if
+				
+				if fso.fileExists(DestPivot & "\6_8_2GwPlugin.xml") then
+					FSO.MoveFile DestPivot & "\6_8_2GwPlugin.xml", DestPivot & "\6_8_2GwPlugin.xml.bak"
+				end if
+				if fso.fileExists(DestPivot & "\6_8_2settings.xml") then
+					FSO.MoveFile DestPivot & "\6_8_2settings.xml", DestPivot & "\6_8_2settings.xml.bak"
+				end if
+				
+				if FSO.fileexists(SourcePivot & "\6_8_2GwPlugin.xml") then
+					FSO.CopyFile SourcePivot & "\6_8_2GwPlugin.xml", DestPivot & "\6_8_2GwPlugin.xml"
+				end if
+				if FSO.fileexists(SourcePivot & "\6_8_2settings.xml") then
+					FSO.CopyFile SourcePivot & "\6_8_2settings.xml", DestPivot & "\6_8_2settings.xml"
+				end if
+
+				if err <> 0 then
+					div1.innerhtml = div1.innerhtml & "Error: " & Err.Number & "<BR>"
+					div1.innerhtml = div1.innerhtml & "Source: " &  Err.Source & "<BR>"
+					div1.innerhtml = div1.innerhtml & "Description: " &  Err.Description & "<BR>"
+					err.clear
+				end if
+			elseif destThere = False then
+				div1.innerhtml = div1.innerhtml & "This will start copying the folder, it may take a few minutes" & "<BR>"
+				Div1.doScroll("pageDown")
+				
+				src = sourceFolder & username & knightSource & IMTradeLoc
+				dst = destFolder & username & knightDest & NewIMTradeLoc
+				
+				'msgbox "robocopy " & """" &  src & """" & " " & """" & dst & """" & " /e /r:1 /w:1"
+				objShell.Run "c:\scripts\robocopy.exe " & """" &  src & """" & " " & """" & dst & """" & " /e /r:1 /w:1"
+			end if
+			
+			div1.innerhtml = div1.innerhtml &  "Pivot Files have been copied" & "<BR>"
+			Div1.doScroll("pageDown")
+		else 
+			div1.innerhtml = div1.innerhtml & "Did not copy files" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if	
+	end sub
+	
+	sub outlook()
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		strComputer = document.FCopy.strComputer.value
+		strNewComputer = document.FCopy.strNewComputer.value
+		UserName = document.FCopy.UserName.value	
+
+		Dim FSO
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+
+		ComputerOS = OperatingSystem(strComputer)
+		NewComputerOS = OperatingSystem(strNewComputer)
+		
+		CompSource = strComputer
+		CompDest = strNewComputer
+		
+		if ComputerOS = "Win7" then
+			sourceFolder = "\\" & CompSource & "\c$\Users\"
+			OutlookLoc = "\AppData\Roaming\Microsoft"
+		elseif ComputerOS = "XP" then
+			sourceFolder = "\\" & CompSource & "\c$\Documents and Settings\"
+			OutlookLoc = "\Application Data\Microsoft"
+		end if
+		
+		if NewComputerOS = "Win7" then
+			destFolder = "\\" & CompDest & "\c$\users\"
+			NewOutlookLoc = "\AppData\Roaming\Microsoft"
+		elseif NewComputerOS = "XP" then
+			destFolder = "\\" & CompDest & "\c$\Documents and Settings\"
+			NewOutlookLoc = "\Application Data\Microsoft"
+		end if
+
+		knightSource = ""
+		knightDest = ""
+
+		if FSO.FolderExists(sourceFolder & username) AND FSO.FolderExists(sourceFolder & username & "\Desktop") then
+			sourceProf = true
+			if FSO.FolderExists(sourceFolder & username & OutlookLoc & "\Outlook") then
+				SourceOutlook = sourceFolder & username & OutlookLoc & "\Outlook"
+				sourceThere = true
+			else 
+				sourceThere = False
+			end if
+		else
+			sourceProf = False
+		end if
+		
+		if sourceProf = False then
+			if FSO.FolderExists(sourceFolder & username & ".KNIGHT") AND FSO.FolderExists(sourceFolder & username & ".KNIGHT" & "\Desktop") then
+				sourceProf = true
+				if FSO.FolderExists(sourceFolder & username & ".KNIGHT" & OutlookLoc & "\Outlook") then
+					SourceOutlook = sourceFolder & username & ".KNIGHT" & OutlookLoc & "\Outlook"
+					sourceThere = true
+					knightSource = ".KNIGHT"
+				else 
+					sourceThere = False
+				end if
+			else 
+				sourceProf = False
+			end if
+		end if
+			
+		if FSO.FolderExists(destFolder & username) AND FSO.FolderExists(destFolder & username & "\Desktop") then
+			destProf = true
+			if FSO.FolderExists(destFolder & username & NewOutlookLoc & "\Outlook") then
+				DestOutlook = destFolder & username & NewOutlookLoc & "\Outlook"
+				destThere = true
+			else 
+				destThere = False
+			end if
+		else 
+			destProf = False
+		end if
+		
+		if destProf = false then
+			if FSO.FolderExists(destFolder & username & ".KNIGHT") AND FSO.FolderExists(destFolder & username & ".KNIGHT" & "\Desktop") then
+				destProf = true
+				if FSO.FolderExists(destFolder & username & ".KNIGHT" & NewOutlookLoc & "\Outlook") then
+					DestOutlook = destFolder & username & ".KNIGHT" & NewOutlookLoc & "\Outlook"
+					destThere = true
+					knightDest = ".KNIGHT"
+				else 
+					destThere = False
+				end if
+			else 
+				destProf = False
+			end if
+		end if
+		
+		if sourceProf = false then
+			div1.innerhtml = div1.innerhtml & "The user has not logged onto the source PC yet" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+		if destProf = false then
+			div1.innerhtml = div1.innerhtml & "The user has not logged onto the destination PC yet" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+			
+		
+		if sourceProf AND destProf then	
+			strComputer = CompDest
+			Set objWMIService = GetObject("winmgmts:" _
+				& "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+			Set colProcessList = objWMIService.ExecQuery _
+				("SELECT * FROM Win32_Process WHERE Name = 'OUTLOOK.EXE'")
+			For Each objProcess in colProcessList
+				objProcess.Terminate()
+			Next
+			
+			objshell.run "cscript.exe \\jc1wsalt03\Library\Packages\Dantools\sleep.vbs " & 5000, 0, True
+			
+			on error resume next
+			
+			if FSO.FolderExists(DestOutlook & ".old") then
+				FSO.DeleteFolder DestOutlook & ".old"
+			end if
+			if FSO.FolderExists(DestOutlook) then
+				FSO.MoveFolder DestOutlook, DestOutlook & ".old"
+			end if
+
+			if FSO.FolderExists(destFolder & username & knightSource & NewOutlookLoc & "\Signatures.old") then
+				FSO.DeleteFolder destFolder & username & knightSource & NewOutlookLoc & "\Signatures.old"
+			end if
+			if FSO.FolderExists(destFolder & username & knightSource & NewOutlookLoc & "\Signatures") then
+				FSO.MoveFolder destFolder & username & knightSource & NewOutlookLoc & "\Signatures", destFolder & username & knightSource & NewOutlookLoc & "\Signatures" & ".old"
+			end if
+			
+			FSO.CopyFolder sourcefolder & username & knightSource & OutlookLoc & "\Signatures", destFolder & username & knightSource & NewOutlookLoc & "\Signatures"
+			
+			sourceOutlook = sourcefolder & username & knightSource & OutlookLoc & "\Outlook"
+			destOutlook = destFolder & username & knightSource & NewOutlookLoc & "\Outlook"
+			
+			FSO.CopyFolder SourceOutlook, DestOutlook, OverWriteFiles
+			div1.innerhtml = div1.innerhtml & "Copied Outlook Files/Signatures" & "<BR>"
+			Div1.doScroll("pageDown")
+		else
+			div1.innerhtml = div1.innerhtml & "Did NOT copy files" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+	End Sub
+	
+	sub aim()
+		reboot = false
+		strComputer = document.FCopy.strComputer.value
+		strNewComputer = document.FCopy.strNewComputer.value
+		UserName = document.FCopy.UserName.value
+		
+		Dim FSO
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+
+		
+		ComputerOS = OperatingSystem(strComputer)
+		NewComputerOS = OperatingSystem(strNewComputer)
+		
+		CompSource = strComputer
+		CompDest = strNewComputer
+		
+		if ComputerOS = "Win7" then
+			sourceFolder = "\\" & CompSource & "\c$\Users\"
+			LocData = "\AppData\Local\AIM"
+		elseif ComputerOS = "XP" then
+			sourceFolder = "\\" & CompSource & "\c$\Documents and Settings\"
+			LocData = "\Local Settings\Application Data\AIM"
+		end if
+		
+		if NewComputerOS = "Win7" then
+			destFolder = "\\" & CompDest & "\c$\users\"
+			NewLocData = "\AppData\Local\AIM"
+		elseif NewComputerOS = "XP" then
+			destFolder = "\\" & CompDest & "\c$\Documents and Settings\"
+			NewLocData = "\Local Settings\Application Data\AIM"
+		end if
+
+		
+		knightSource = ""
+		knightDest = ""
+		
+		if FSO.FolderExists(sourceFolder & username) AND FSO.FolderExists(sourceFolder & username & "\Desktop") then
+			SourceProf = True
+			if FSO.FolderExists(sourceFolder & username & LocData) then
+				SourceAIM2 = sourceFolder & username & LocData
+				sourceLocSet = true
+			end if
+		else 
+			SourceProf = False
+		end if
+		
+		if sourceProf = false then
+			if FSO.FolderExists(sourceFolder & username & ".KNIGHT") AND FSO.FolderExists(sourceFolder & username & ".KNIGHT" & "\Desktop") then
+				SourceProf = True
+				knightSource = ".KNIGHT"
+				if FSO.FolderExists(sourceFolder & username & ".KNIGHT" & LocData) then
+					SourceAIM2 = sourceFolder & username & ".KNIGHT" & LocData
+					sourceLocSet = true
+				end if
+			else 
+				SourceProf = False
+			end if
+		end if
+			
+		if FSO.FolderExists(destFolder & username) AND FSO.FolderExists(destFolder & username & "\Desktop") then
+			DestProf = True
+		else 
+			DestProf = False
+		end if
+		
+		if destProf = false then
+			if FSO.FolderExists(destFolder & username & ".KNIGHT") AND FSO.FolderExists(destFolder & username & ".KNIGHT" & "\Desktop") then
+				DestProf = True
+				knightDest = ".KNIGHT"
+			else 
+				DestProf = False
+			end if
+		end if
+		
+		if SourceProf = false then
+			div1.innerhtml = div1.innerhtml & "The user has not logged onto the source PC yet" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+		if DestProf = false then
+			if destProf = false then
+				div1.innerhtml = div1.innerhtml & "The user has not logged onto the destination PC yet" & "<BR>"
+				Div1.doScroll("pageDown")
+			end if
+		end if
+			
+		
+		if sourceProf AND destProf then			
+			strComputer = CompDest
+			Set objWMIService = GetObject("winmgmts:" _
+				& "{impersonationLevel=impersonate}!\\" & strComputer & "\root\cimv2")
+			Set colProcessList = objWMIService.ExecQuery _
+				("SELECT * FROM Win32_Process WHERE Name = 'aim.exe'")
+			For Each objProcess in colProcessList
+				objProcess.Terminate()
+			Next
+			
+			if FSO.FolderExists(destFolder & username & knightDest & NewLocData & ".old") then
+				FSO.DeleteFolder destFolder & username & knightDest & NewLocData & ".old"
+			end if
+			if FSO.FolderExists(destFolder & username & knightDest & NewLocData) then
+				FSO.MoveFolder destFolder & username & knightDest & NewLocData, destFolder & username & knightDest & NewLocData & ".old"
+			end if
+			if FSO.FolderExists(sourceFolder & username & knightSource & locData) then
+				FSO.CopyFolder sourceFolder & username & knightSource & locData, destFolder & username & knightSource & newlocData
+			end if
+			div1.innerhtml = div1.innerhtml & "AIM Files have been copied" & "<BR>"
+			Div1.doScroll("pageDown")
+		else 
+			div1.innerhtml = div1.innerhtml & "Did not copy files" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if		
+	end sub
+	
+	sub desktop()
+		SET objShell = CREATEOBJECT("Wscript.Shell")
+		reboot = false
+		strComputer = document.FCopy.strComputer.value
+		strNewComputer = document.FCopy.strNewComputer.value
+		UserName = document.FCopy.UserName.value
+		
+		Dim FSO
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+
+		ComputerOS = OperatingSystem(strComputer)
+		NewComputerOS = OperatingSystem(strNewComputer)
+		
+		CompSource = strComputer
+		CompDest = strNewComputer
+		
+		if ComputerOS = "Win7" then
+			sourceFolder = "\\" & CompSource & "\c$\Users\"
+		elseif ComputerOS = "XP" then
+			sourceFolder = "\\" & CompSource & "\c$\Documents and Settings\"
+		end if
+		
+		if NewComputerOS = "Win7" then
+			destFolder = "\\" & CompDest & "\c$\users\"
+		elseif NewComputerOS = "XP" then
+			destFolder = "\\" & CompDest & "\c$\Documents and Settings\"
+		end if
+		
+		desktopFiles = "\desktop"
+		
+		knightSource = ""
+		knightDest = ""
+
+		if FSO.FolderExists(sourceFolder & username) AND FSO.FolderExists(sourceFolder & username & "\Desktop") then
+			SourceProf = True
+		else 
+			SourceProf = False
+		end if
+		
+		if sourceProf = false then
+			if FSO.FolderExists(sourceFolder & username & ".KNIGHT") AND FSO.FolderExists(sourceFolder & username & ".KNIGHT" & "\Desktop") then
+				SourceProf = True
+			else 
+				SourceProf = False
+			end if
+		end if
+		
+		if FSO.FolderExists(destFolder & username) AND FSO.FolderExists(destFolder & username & "\Desktop") then
+			DestProf = True
+		else 
+			DestProf = False
+		end if
+		
+		if destProf = false then
+			if FSO.FolderExists(destFolder & username & ".KNIGHT") AND FSO.FolderExists(destFolder & username & ".KNIGHT" & "\Desktop") then
+				DestProf = True
+			else 
+				DestProf = False
+			end if
+		end if
+		
+		if sourceProf = false then
+			div1.innerhtml = div1.innerhtml & "The user has not logged onto the source PC yet" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+		if destProf = false then
+			div1.innerhtml = div1.innerhtml & "The user has not logged onto the destination PC yet" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+			
+		
+		if sourceProf AND destProf then		
+			on error resume next
+			if FSO.FolderExists(destFolder & username & knightSource & "\Desktop.old") then 	
+				FSO.Deletefolder(destFolder & username & knightSource & "\Desktop.old")
+			end if
+			if FSO.FolderExists(destFolder & username & knightSource & "\Desktop") then 	
+				FSO.Movefolder destFolder & username & knightSource & "\Desktop", destFolder & username & knightSource & "\Desktop.old"
+				if err.number <> 0 then
+					div1.innerhtml = div1.innerhtml & "Error: " & Err.Number & VbCrLf & "Unable to delete current Desktop Folder" & "<BR>"
+				end if
+			end if
+			
+			sourcePath = sourceFolder & username & knightSource & "\Desktop"
+			destinationpath = destFolder & username & knightSource & "\Desktop"
+			command = "c:\scripts\robocopy.exe """ & sourcePath & """ """ & destinationPath & """ /e /r:1 /w:1 /purge"						
+			'msgbox "Run: " & command
+			objShell.Run command
+		
+			div1.innerhtml = div1.innerhtml & "Desktop Files have been copied" & "<BR>"
+			Div1.doScroll("pageDown")
+		else
+			div1.innerhtml = div1.innerhtml & "Didn't copy any files" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+	end sub	
+	
+	sub RBWS()
+		reboot = false
+		strComputer = document.FCopy.strComputer.value
+		strNewComputer = document.FCopy.strNewComputer.value
+		UserName = document.FCopy.UserName.value
+		
+		Dim FSO
+		Set FSO = CreateObject("Scripting.FileSystemObject")
+
+		ComputerOS = OperatingSystem(strComputer)
+		NewComputerOS = OperatingSystem(strNewComputer)
+		
+		CompSource = strComputer
+		CompDest = strNewComputer
+		
+		if ComputerOS = "Win7" then
+			sourceFolder = "\\" & CompSource & "\c$\Reuters\RBWS_USERFILES"
+		elseif ComputerOS = "XP" then
+			sourceFolder = "\\" & CompSource & "\c$\Program Files\Reuters\RBWS"
+		end if
+		
+		if NewComputerOS = "Win7" then
+			destFolder = "\\" & CompDest & "\c$\Reuters\RBWS_USERFILES"
+		elseif NewComputerOS = "XP" then
+			destFolder = "\\" & CompDest & "\c$\Program Files\Reuters\RBWS"
+		end if
+		
+		EXfolder = "\packages\ex00"
+		
+		if FSO.FolderExists(sourceFolder) then
+			SFold = true
+			if FSO.FileExists(sourceFolder & "\BF.difi") then
+				sBfdifi = true
+			end if
+			if FSO.FileExists(sourceFolder & "\bf.difu") then
+				sBfDifu = true
+			end if
+			if FSO.FolderExists(sourceFolder & EXfolder) then
+				sEXFold = true
+			end if
+		else
+			div1.innerHTML = div1.innerHTML & "Source Folder does not exist" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+		
+		if FSO.FolderExists(destFolder) then
+			DFold = true
+			if FSO.FileExists(destFolder & "\BF.difi") then
+				dBfDifi = true
+			end if
+			if FSO.FileExists(destFolder & "\bf.difu") then
+				dBfDifu = true
+			end if
+			if FSO.FolderExists(destFolder & EXfolder) then
+				dEXFold = true
+			end if
+		else
+			div1.innerHTML = div1.innerHTML & "Destination Folder does not exist" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if	
+				
+		if sFold AND dFold then		
+			if sBfDifi and dBfDifi then
+				if FSO.FileExists(destFolder & "\BF.difi.old") then
+					FSO.DeleteFile(destFolder & "\BF.difi.old")
+				end if
+				FSO.MoveFile destFolder & "\BF.difi", destFolder & "\BF.difi.old"
+				FSO.CopyFile sourceFolder & "\BF.difi", destFolder & "\BF.difi"
+			else
+				if FSo.fileexists(sourcefolder & "\BF.difi") then
+					FSO.CopyFile sourceFolder & "\BF.difi", destFolder & "\BF.difi"
+				end if
+			end if
+			
+			if sBfDifu and dBfDifu then
+				if FSO.FileExists(destFolder & "\BF.difu.old") then
+					FSO.DeleteFile(destFolder & "\BF.difu.old")
+				end if
+				FSO.MoveFile destFolder & "\BF.difu", destFolder & "\BF.difu.old"
+				FSO.CopyFile sourceFolder & "\BF.difu", destFolder & "\BF.difu"
+			else
+				FSO.CopyFile sourceFolder & "\BF.difu", destFolder & "\BF.difu"
+			end if
+			
+			if sEXFold and dEXFold then
+				SET objShell = CREATEOBJECT("Wscript.Shell")
+				if FSO.FolderExists(destFolder & EXFolder & ".old") then
+					FSO.DeleteFolder(destFolder & EXFolder & ".old")
+				end if
+				FSO.MoveFolder destFolder & EXFolder, destFolder & EXFolder & ".old"
+				'FSO.CopyFolder sourceFolder & EXFolder, destFolder & ExFolder
+				command = "c:\scripts\robocopy.exe """ & SourceFolder & EXFolder & """ """ & destFolder&ExFolder & """ /e /r:1 /w:1 /purge"						
+				'msgbox "Run: " & command
+				objShell.Run command
+			else
+				'FSO.CopyFolder sourceFolder & EXFolder, destFolder & EXFolder
+				command = "c:\scripts\robocopy.exe """ & SourceFolder & EXFolder & """ """ & destFolder&ExFolder & """ /e /r:1 /w:1 /purge"						
+				'msgbox "Run: " & command
+				objShell.Run command
+
+			end if
+			
+			div1.innerHTML = div1.innerHTML & "Reuters Files have been copied" & "<BR>"
+			Div1.doScroll("pageDown")
+		else
+			div1.innerHTML = div1.innerHTML & "Either Source or Destination Folder does not exist" & "<BR>"
+			Div1.doScroll("pageDown")
+		end if
+	end sub
+
+	function OperatingSystem(Comps)
+		'OS Verification
+		strComputer = Comps
+		Set oWMIService = GetObject("winmgmts:\\" & strComputer & "\root\cimv2")
+		Set colOSInfo = oWMIService.ExecQuery("Select * from Win32_OperatingSystem")
+		For Each oOSProperty in colOSInfo 
+			strCaption = oOSProperty.Caption 
+		Next
+
+		If InStr(1,strCaption, "Windows 7", vbTextCompare) Then
+			OperatingSystem = "Win7"
+		end if
+		If InStr(1,strCaption, "XP", vbTextCompare) Then 
+			OperatingSystem = "XP"
+		end if
+	end function
+	
+	Sub window_onload()
+		window.resizeTo 500, 850
+	End Sub
+</SCRIPT>
+</HEAD>
+<BODY style="background-color:black">
+    <FORM NAME="FCopy">
+        <H1 style="text-align:center;font-family:arial;color:white;font-size:40px;">Copy User Settings</H1>
+		<H4 style="text-align:center;font-family:arial;color:white;font-size:15px;">This will copy a users settings.</H4>
+        <TABLE border=0>
+            <TR>
+                <TD><STRONG style="color:white">Enter Source Computer Name:</Strong></TD>
+                <TD><INPUT id=strComputer name=strComputer size=20></TD>
+            </TR>
+            <TR>
+                <TD><STRONG style="color:white">Enter Destination Computer Name:</Strong></TD>
+                <TD><INPUT id=strNewComputer name=strNewComputer size=20></TD>
+            </TR>
+            <TR>
+                <TD><STRONG style="color:white">Enter User Name:</Strong></TD>
+                <TD><INPUT id=UserName name=UserName size=20></TD>
+            </TR> 
+			<TR>
+                <TD><STRONG style="color:white">Copy What?</Strong></TD>
+                <TD>
+					<STRONG style="color:white">Pivot:</Strong>
+					<input type="checkbox" name="Pivot" value="pivot"</><br />
+					<STRONG style="color:white">Outlook:</Strong>
+					<input type="checkbox" name="Outlook" value="outlook"</><br />
+					<STRONG style="color:white">Aim:</Strong>
+					<input type="checkbox" name="Aim" value="aim"</><br />
+					<STRONG style="color:white">Desktop:</Strong>
+					<input type="checkbox" name="Desktop" value="desktop"</><br />		
+					<STRONG style="color:white">Reuters Bridge:</Strong>
+					<input type="checkbox" name="RBWS" value="RBWS"</><br />
+				</TD>
+            </TR>
+            <TR>
+                <TD> </TD>
+                <TD>
+					<a class="button" id=cmdContinue href="#"><span>Continue</span></a>
+                </TD>
+            </TR>
+        </TABLE>
+		<TABLE>
+			<TR>
+				<TD>
+					<div id="div1" style=" background-color:LightBlue; width: 400px; height: 400px; word-break:keep-all; overflow:auto">Output: </BR>
+				</TD>
+			</TR>
+		</TABLE>
+    </FORM>
+</BODY>
+</HTML>
